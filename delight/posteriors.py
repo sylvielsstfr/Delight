@@ -2,7 +2,8 @@
 
 import numpy as np
 
-from scipy.misc import logsumexp
+#from scipy.misc import logsumexp
+from scipy.special import logsumexp
 
 
 def hypercube2simplex(zs):
