@@ -1,4 +1,11 @@
-
+####################################################################################################
+# Script name : processFilters.py
+#
+# fit the band filters with a gaussian mixture
+# if make_plot, save images
+#
+# output file : band + '_gaussian_coefficients.txt'
+#####################################################################################################
 import sys
 import numpy as np
 from scipy.interpolate import interp1d
@@ -12,11 +19,13 @@ make_plots = True
 
 if len(sys.argv) < 2:
     raise Exception('Please provide a parameter file')
+
 params = parseParamFile(sys.argv[1], verbose=False, catFilesNeeded=False)
 bandNames = params['bandNames']
 fmt = '.res'
 max_redshift = params['redshiftMax']  # for plotting purposes
 root = params['bands_directory']
+
 if make_plots:
     import matplotlib.pyplot as plt
     cm = plt.get_cmap('brg')
@@ -25,6 +34,7 @@ if make_plots:
 
 
 # Function we will optimize
+# Gaussian function representing filter
 def dfunc(p, x, yd):
     y = 0*x
     n = p.size//2
@@ -41,11 +51,13 @@ for iband, band in enumerate(bandNames):
     fname_in = root + '/' + band + fmt
     data = np.genfromtxt(fname_in)
     coefs = np.zeros((numCoefs, 3))
+    # wavelength - transmission function
     x, y = data[:, 0], data[:, 1]
     #y /= x  # divide by lambda
     # Only consider range where >1% max
     ind = np.where(y > 0.01*np.max(y))[0]
     lambdaMin, lambdaMax = x[ind[0]], x[ind[-1]]
+
     # Initialize values for amplitude and width of the components
     sig0 = np.repeat((lambdaMax-lambdaMin)/numCoefs/4, numCoefs)
     # Components uniformly distributed in the range
@@ -53,6 +65,8 @@ for iband, band in enumerate(bandNames):
     amp0 = interp1d(x, y)(mus)
     p0 = np.concatenate((amp0, sig0))
     print(band, end=" ")
+
+    # fit
     popt, pcov = leastsq(dfunc, p0, args=(x, y))
     coefs[:, 0] = np.abs(popt[0:numCoefs])  # amplitudes
     coefs[:, 1] = mus  # positions

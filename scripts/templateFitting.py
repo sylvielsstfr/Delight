@@ -1,4 +1,9 @@
-
+########################################################################################
+#
+# script : templateFitting.py
+#
+#
+######################################################################################
 import sys
 from mpi4py import MPI
 import numpy as np
@@ -24,6 +29,8 @@ if threadNum == 0:
     print('Thread number / number of threads: ', threadNum+1, numThreads)
     print('Input parameter file:', paramFileName)
 
+
+
 DL = approx_DL()
 redshiftDistGrid, redshiftGrid, redshiftGridGP = createGrids(params)
 numZ = redshiftGrid.size
@@ -36,23 +43,28 @@ dir_seds = params['templates_directory']
 dir_filters = params['bands_directory']
 lambdaRef = params['lambdaRef']
 sed_names = params['templates_names']
+
 f_mod = np.zeros((redshiftGrid.size, len(sed_names),
                   len(params['bandNames'])))
+
 for t, sed_name in enumerate(sed_names):
     f_mod[:, t, :] = np.loadtxt(dir_seds + '/' + sed_name +
                                 '_fluxredshiftmod.txt')
 
 numObjectsTarget = np.sum(1 for line in open(params['target_catFile']))
+
 firstLine = int(threadNum * numObjectsTarget / float(numThreads))
 lastLine = int(min(numObjectsTarget,
                (threadNum + 1) * numObjectsTarget / float(numThreads)))
 numLines = lastLine - firstLine
+
 if threadNum == 0:
     print('Number of Target Objects', numObjectsTarget)
 comm.Barrier()
 print('Thread ', threadNum, ' analyzes lines ', firstLine, ' to ', lastLine)
 
 numMetrics = 7 + len(params['confidenceLevels'])
+
 # Create local files to store results
 localPDFs = np.zeros((numLines, numZ))
 localMetrics = np.zeros((numLines, numMetrics))
@@ -72,16 +84,20 @@ for z, normedRefFlux, bands, fluxes, fluxesVar,\
     #    * (DL(redshiftGrid)**2. * (1+redshiftGrid))[:, None]
     ell_hat_z = 1
     params['ellPriorSigma'] = 1e12
+
     like_grid = approx_flux_likelihood(
         fluxes, fluxesVar, f_mod[:, :, bands],
         normalized=True, marginalizeEll=True,
         ell_hat=ell_hat_z, ell_var=(ell_hat_z*params['ellPriorSigma'])**2)
+
     b_in = np.array(params['p_t'])[None, :]
     beta2 = np.array(params['p_z_t'])**2.0
     p_z = b_in * redshiftGrid[:, None] / beta2[None, :] *\
         np.exp(-0.5 * redshiftGrid[:, None]**2 / beta2[None, :])
     like_grid *= p_z
+
     localPDFs[loc, :] += like_grid.sum(axis=1)
+    
     if localPDFs[loc, :].sum() > 0:
         localMetrics[loc, :] = computeMetrics(
                                     z, redshiftGrid,
