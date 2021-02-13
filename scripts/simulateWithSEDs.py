@@ -15,8 +15,14 @@ from scipy.interpolate import interp1d
 from delight.io import *
 from delight.utils import *
 
+logger = logging.getLogger(__name__)
+coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(programname)s, %(name)s[%(process)d] %(levelname)s %(message)s')
+
 if len(sys.argv) < 2:
     raise Exception('Please provide a parameter file')
+
+
+logger.info("--- Simulate with SED ---")
 
 params = parseParamFile(sys.argv[1], verbose=False, catFilesNeeded=False)
 dir_seds = params['templates_directory']

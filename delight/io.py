@@ -10,6 +10,9 @@ import itertools
 from delight.utils import approx_DL
 from scipy.interpolate import interp1d
 
+logger = logging.getLogger(__name__)
+coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(programname)s, %(name)s[%(process)d] %(levelname)s %(message)s')
+
 #--------------------------------------------------------------------------------
 def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
     """
@@ -54,6 +57,11 @@ def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
         params['bands_debug'] = config.getboolean('Bands', 'bands_debug')
     else:
         params['bands_debug'] = False
+
+    if 'bands_makeplots' in config['Bands']:
+        params['bands_makeplots'] = config.getboolean('Bands', 'bands_makeplots')
+    else:
+        params['bands_makeplots'] = False
 
 
     # Parsing Templates
@@ -183,8 +191,11 @@ def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
            config.get('Other', 'confidenceLevels').split(' ')]
 
     if verbose:
-        print('Input parameter file:', fileName)
-        print('Parameters read:')
+        #print('Input parameter file:', fileName)
+        msg='Input parameter file:{}'.format(fileName)
+        logger.warning(msg)
+        #print('Parameters read:')
+        logger.warning('Parameters read:')
         for k, v in params.items():
             if type(v) is list:
                 print('> ', "%-20s" % k, ' '.join([str(x) for x in v]))

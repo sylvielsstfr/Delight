@@ -14,15 +14,29 @@ from scipy.optimize import leastsq
 from delight.utils import *
 from delight.io import *
 
+# Create a logger object.
+logger = logging.getLogger(__name__)
+coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(programname)s %(name)s[%(process)d] %(levelname)s %(message)s')
+
+msg="Start processFilters.py"
+
+logger.info(msg)
+
+logger.info("--- Process FILTERS ---")
+
 #numCoefs = 7  # number of components for the fit
-numCoefs = 21  # for lsst the transmission is too wavy ,number of components for the fit
-make_plots = True
+#numCoefs = 21  # for lsst the transmission is too wavy ,number of components for the fit
+#make_plots = True
 
 if len(sys.argv) < 2:
     raise Exception('Please provide a parameter file')
 
-params = parseParamFile(sys.argv[1], verbose=False, catFilesNeeded=False)
+params = parseParamFile(sys.argv[1], verbose=True, catFilesNeeded=False)
+
+numCoefs = params["numCoefs"]
 bandNames = params['bandNames']
+make_plots= params['bands_makeplots']
+
 fmt = '.res'
 max_redshift = params['redshiftMax']  # for plotting purposes
 root = params['bands_directory']
