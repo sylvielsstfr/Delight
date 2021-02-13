@@ -14,7 +14,8 @@ from scipy.optimize import leastsq
 from delight.utils import *
 from delight.io import *
 
-numCoefs = 7  # number of components for the fit
+#numCoefs = 7  # number of components for the fit
+numCoefs = 21  # for lsst the transmission is too wavy ,number of components for the fit
 make_plots = True
 
 if len(sys.argv) < 2:

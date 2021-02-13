@@ -78,7 +78,8 @@ numMetrics = 7 + len(params['confidenceLevels'])
 localPDFs = np.zeros((numLines, numZ))
 localMetrics = np.zeros((numLines, numMetrics))
 
-# Now loop over target set to compute likelihood function
+# Now loop over each target galaxy (indexed bu loc index) to compute likelihood function
+# with its flux in each bands
 loc = - 1
 trainingDataIter = getDataFromFile(params, firstLine, lastLine,
                                    prefix="target_", getXY=False)

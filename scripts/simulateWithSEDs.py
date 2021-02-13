@@ -31,12 +31,15 @@ numB = len(params['bandNames'])
 numObjects = params['numObjects']
 noiseLevel = params['noiseLevel']
 
-# container of interpolation functions: row sed, column bands
+# f_mod : 2D-container of interpolation functions of flux over redshift:
+# row sed, column bands
 # one row per sed, one column per band
 f_mod = np.zeros((numT, numB), dtype=object)
 
 # loop on SED
-# read the fluxes file at different redshift : file sed_name + '_fluxredshiftmod.txt'
+# read the fluxes file at different redshift in training data file
+# in file sed_name + '_fluxredshiftmod.txt'
+# to produce f_mod the interpolation function redshift --> flux for each band and sed template
 for it, sed_name in enumerate(sed_names):
     # data : redshifted fluxes (row vary with z, columns: filters)
     data = np.loadtxt(dir_seds + '/' + sed_name + '_fluxredshiftmod.txt')
@@ -66,6 +69,7 @@ for k in range(numObjects):
         fluxesVar[k, i] = noise**2.
 
 # container for training galaxies output
+# at some redshift, provides the flux and its variance inside each band
 data = np.zeros((numObjects, 1 + len(params['training_bandOrder'])))
 bandIndices, bandNames, bandColumns, bandVarColumns, redshiftColumn,\
     refBandColumn = readColumnPositions(params, prefix="training_")
@@ -77,8 +81,8 @@ data[:, redshiftColumn] = redshifts
 data[:, -1] = types
 np.savetxt(params['trainingFile'], data)
 
-# Generate Target data
-#----------------------
+# Generate Target data : procedure simular to the training
+#-----------------------------------------------------------
 # pick set of redshift at random
 redshifts = np.random.uniform(low=redshiftGrid[0],
                               high=redshiftGrid[-1],
