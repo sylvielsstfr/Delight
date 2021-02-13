@@ -4,11 +4,13 @@ import numpy as np
 import os
 import collections
 import configparser
+import logging
+import coloredlogs
 import itertools
 from delight.utils import approx_DL
 from scipy.interpolate import interp1d
 
-
+#--------------------------------------------------------------------------------
 def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
     """
     Parser for configuration inputtype parameter files,
@@ -31,12 +33,31 @@ def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
         raise Exception(params['rootDir']+' is not a valid directory')
 
     # Parsing Bands
+    #---------------
     params['bands_directory'] = config.get('Bands', 'directory')
     if not os.path.isdir(params['bands_directory']):
         raise Exception(params['bands_directory']+' is not a valid directory')
     params['bandNames'] = config.get('Bands', 'Names').split(' ')
 
+    key= 'numCoefs'
+    if key in config['Bands']:
+        params['numCoefs'] = config.getint('Bands', 'numCoefs')
+    else:
+        params['numCoefs'] = 7
+
+    if 'bands_verbose' in  config['Bands']:
+        params['bands_verbose'] = config.getboolean('Bands','bands_verbose')
+    else:
+        params['bands_verbose'] = False
+
+    if 'bands_debug' in config['Bands']:
+        params['bands_debug'] = config.getboolean('Bands', 'bands_debug')
+    else:
+        params['bands_debug'] = False
+
+
     # Parsing Templates
+    #-------------------
     params['templates_directory'] = config.get('Templates', 'directory')
     params['lambdaRef'] = config.getfloat('Templates', 'lambdaRef')
     params['templates_names'] = config.get('Templates', 'names').split(' ')
@@ -49,7 +70,18 @@ def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
     assert params['p_z_t'].size == params['p_z_t'].size and\
         params['p_z_t'].size == len(params['templates_names'])
 
+    if 'templates_verbose' in config['Templates']:
+        params['templates_verbose'] = config.getboolean('Templates', 'templates_verbose')
+    else:
+        params['templates_verbose'] = False
+
+    if 'templates_debug' in config['Templates']:
+        params['templates_debug'] = config.getboolean('Templates', 'templates_debug')
+    else:
+        params['templates_debug'] = False
+
     # Parsing Training
+    #------------------------
     params['training_numChunks'] = config.getint('Training', 'numChunks')
     params['training_paramFile'] = config.get('Training', 'paramFile')
     params['training_catFile'] = config.get('Training', 'catFile')
@@ -83,12 +115,14 @@ def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
             raise Exception(band+' does not exist')
 
     # Simulation
+    #-------------
     params['trainingFile'] = config.get('Simulation', 'trainingFile')
     params['targetFile'] = config.get('Simulation', 'targetFile')
     params['numObjects'] = int(config.getfloat('Simulation', 'numObjects'))
     params['noiseLevel'] = config.getfloat('Simulation', 'noiseLevel')
 
     # Parsing Target
+    #-----------------
     params['target_extraFracFluxError']\
         = config.getfloat('Target', 'extraFracFluxError')
     params['target_catFile'] = config.get('Target', 'catFile')
@@ -121,6 +155,7 @@ def parseParamFile(fileName, verbose=True, catFilesNeeded=True):
     params['metricsFileTemp'] = config.get('Target', 'metricsFileTemp')
 
     # Parsing other parameters
+    #--------------------------
     params['zPriorSigma'] = config.getfloat('Other', 'zPriorSigma')
     params['ellPriorSigma'] = config.getfloat('Other', 'ellPriorSigma')
     params['fluxLuminosityNorm']\
