@@ -75,7 +75,7 @@ for iband, band in enumerate(bandNames):
 
     # Initialize values for amplitude and width of the components
     sig0 = np.repeat((lambdaMax-lambdaMin)/numCoefs/4, numCoefs)
-    # Components uniformly distributed in the range
+    # Components regularly placed in the range
     mus = np.linspace(lambdaMin+sig0[0], lambdaMax-sig0[-1], num=numCoefs)
     amp0 = interp1d(x, y)(mus)
     p0 = np.concatenate((amp0, sig0))

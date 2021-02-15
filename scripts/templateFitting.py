@@ -25,7 +25,7 @@ threadNum = comm.Get_rank()
 numThreads = comm.Get_size()
 
 if threadNum == 0:
-    print("--- TEMPLATE FITTING ---")
+    #print("--- TEMPLATE FITTING ---")
     logger.info("--- TEMPLATE FITTING ---")
 # Parse parameters file
 if len(sys.argv) < 2:
@@ -35,6 +35,8 @@ params = parseParamFile(paramFileName, verbose=False)
 if threadNum == 0:
     print('Thread number / number of threads: ', threadNum+1, numThreads)
     print('Input parameter file:', paramFileName)
+    msg= 'Input parameter file: {}'.format(paramFileName)
+    logger.info(msg)
 
 
 
@@ -76,6 +78,7 @@ if threadNum == 0:
 comm.Barrier()
 print('Thread ', threadNum, ' analyzes lines ', firstLine, ' to ', lastLine)
 
+# what is this 7 ???
 numMetrics = 7 + len(params['confidenceLevels'])
 
 # Create local files to store results
@@ -100,7 +103,7 @@ for z, normedRefFlux, bands, fluxes, fluxesVar,\
     params['ellPriorSigma'] = 1e12
 
     # approximate flux likelihood, with scaling of both the mean and variance.
-    # This approximates the true likelihood with an iterative scheme.
+    # This approximates the true likelihood with an iterative scheme for that galaxy
     # - data : fluxes, fluxesVar
     # - model based on SED : f_mod
     like_grid = approx_flux_likelihood(
@@ -115,9 +118,9 @@ for z, normedRefFlux, bands, fluxes, fluxesVar,\
 
     p_z = b_in * redshiftGrid[:, None] / beta2[None, :] *\
         np.exp(-0.5 * redshiftGrid[:, None]**2 / beta2[None, :])
-    like_grid *= p_z
+    like_grid *= p_z #likelihood * prior = posterior
 
-    localPDFs[loc, :] += like_grid.sum(axis=1)
+    localPDFs[loc, :] += like_grid.sum(axis=1)  # sum posteriors for that galaxy
     
     if localPDFs[loc, :].sum() > 0:
         localMetrics[loc, :] = computeMetrics(
