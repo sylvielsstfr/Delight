@@ -1,8 +1,4 @@
-##################################################################################################################################
-#
-# script : delight-learn.py
-#
-############################################################################################################################
+
 import sys
 from mpi4py import MPI
 import numpy as np
@@ -10,10 +6,6 @@ from delight.io import *
 from delight.utils import *
 from delight.photoz_gp import PhotozGP
 from delight.photoz_kernels import Photoz_mean_function, Photoz_kernel
-
-
-logger = logging.getLogger(__name__)
-coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(programname)s, %(name)s[%(process)d] %(levelname)s %(message)s')
 
 comm = MPI.COMM_WORLD
 threadNum = comm.Get_rank()
@@ -24,8 +16,7 @@ if len(sys.argv) < 2:
     raise Exception('Please provide a parameter file')
 params = parseParamFile(sys.argv[1], verbose=False)
 if threadNum == 0:
-    #print("--- DELIGHT-LEARN ---")
-    logger.info("--- DELIGHT-LEARN ---")
+    print("--- DELIGHT-LEARN ---")
 
 # Read filter coefficients, compute normalization of filters
 bandCoefAmplitudes, bandCoefPositions, bandCoefWidths, norms\

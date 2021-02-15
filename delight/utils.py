@@ -3,13 +3,6 @@
 import numpy as np
 from scipy.misc import derivative
 
-import logging
-import coloredlogs
-
-logger = logging.getLogger(__name__)
-coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(programname)s, %(name)s[%(process)d] %(levelname)s %(message)s')
-
-
 
 class approx_DL():
     """
