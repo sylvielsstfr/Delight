@@ -2,7 +2,7 @@
 #
 # script : simulateWithSED.py
 #
-# simulate mock data with those filters and SEDs
+# simulate mock data fluxes with those filters and SEDs
 # produce files `galaxies-redshiftpdfs.txt` and `galaxies-redshiftpdfs2.txt` for training and target
 #
 #########################################################################################################
@@ -38,7 +38,6 @@ numObjects = params['numObjects']
 noiseLevel = params['noiseLevel']
 
 # f_mod : 2D-container of interpolation functions of flux over redshift:
-# row sed, column bands
 # one row per sed, one column per band
 f_mod = np.zeros((numT, numB), dtype=object)
 

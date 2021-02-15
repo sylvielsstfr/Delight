@@ -9,3 +9,7 @@
 ## Make it
    python setup.py build_ext --inplace
   python setup.py install
+
+## Clean
+python setup.py install --record files.txt
+sudo rm $(cat files.txt)
