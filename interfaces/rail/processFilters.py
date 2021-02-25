@@ -29,6 +29,8 @@ def processFilters(configfilename):
     :return:
     """
 
+    msg="----- processFilters ------"
+    logger.info("msg")
 
 
     params = parseParamFile(configfilename, verbose=True, catFilesNeeded=False)

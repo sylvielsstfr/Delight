@@ -42,10 +42,11 @@ setup(
   cmdclass={"build_ext": build_ext,
             'build_sphinx': BuildDoc},
   packages=['delight','interfaces.rail'],
-  package_dir={'delight': './delight','interfaces.rail':'./interfaces/rail','delightdata':'./data'},
+  package_dir={'delight': './delight','interfaces.rail':'./interfaces/rail'},
   #package_data={'delightdata': ['data/BROWN_SEDs/*.dat', 'data/CWW_SEDs/*.dat','data/FILTERS/*.res']},
-  package_data={'delightdata': extra_files},
-  #include_package_data=True,
+  package_data={'': extra_files},
+  #include_package_data = True,
+
   command_options={
         'build_sphinx': {
             'project': (None, "delight"),
