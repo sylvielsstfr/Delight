@@ -29,9 +29,8 @@ def processSEDs(configfilename):
     Compute the The Flux expected in each band for  redshifts in the grid
     : input file : the configuration file
 
-    :return:
+    :return: produce the file of flux-redshift in bands
     """
-
 
 
 

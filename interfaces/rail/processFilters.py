@@ -33,7 +33,7 @@ def processFilters(configfilename):
     logger.info("msg")
 
 
-    params = parseParamFile(configfilename, verbose=True, catFilesNeeded=False)
+    params = parseParamFile(configfilename, verbose=False, catFilesNeeded=False)
 
     numCoefs = params["numCoefs"]
     bandNames = params['bandNames']

@@ -43,7 +43,7 @@ def templateFitting(configfilename):
     # Parse parameters file
 
     paramFileName = configfilename
-    params = parseParamFile(paramFileName, verbose=True)
+    params = parseParamFile(paramFileName, verbose=False)
 
     if threadNum == 0:
         msg = 'Thread number / number of threads: ' + str(threadNum+1) + " , " + str(numThreads)
