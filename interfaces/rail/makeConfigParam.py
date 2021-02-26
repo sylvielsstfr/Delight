@@ -3,6 +3,9 @@
 #
 #  Generate Config parameter required by Delight
 #
+#  Some parameters are read from the from the rail configuration file
+#  Some other parameter are hardcoded in this file
+# The fina goal is to retrieve those parameters from RAIL config file
 #####################################################################################################
 import sys
 import numpy as np
@@ -24,12 +27,17 @@ coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(
 
 def makeConfigParam(path,inputs_rail):
     """
-    makeConfigParam()
+    makeConfigParam(path,inputs_rail)
 
-    generate Confiuration parameter
+    generate Configuration parameter file in ascii. This file is decoded by Delight functions with argparse
 
-    : input file : the configuration file
-    :return:
+    : inputs:
+      -  path : where the FILTERS and SEDs datafiles used by Delight initialisation are stored,
+      - inputs_rail : RAIL parameter files
+
+    Either the parameters used by Delight are hardcoded here of the can be setup by RAIL config strcture (yaml) in inputs_rail
+
+    :return: paramfile_txt , the string for the configuration file. RAIL will write itself this file.
     """
 
     logger.debug("__name__:"+__name__)
@@ -228,6 +236,9 @@ redshiftpdfFileComp: data_lsst/galaxies-redshiftpdfs-comp.txt
         paramfile_txt += "\n"
         paramfile_txt += "redshiftpdfFileComp: " + os.path.join(thepath, 'galaxies-redshiftpdfs-comp.txt')
 
+    # 7) Other Section
+
+
     paramfile_txt +=  \
 """
 [Other]
@@ -241,11 +252,40 @@ alpha_L: 1.0e2
 V_L: 0.1
 lines_pos: 6500 5002.26 3732.22
 lines_width: 20.0 20.0 20.0
+"""
+
+
+
+
+    if inputs_rail == None:
+        paramfile_txt +=  \
+"""
 redshiftMin: 0.1
 redshiftMax: 1.101
 redshiftNumBinsGPpred: 100
 redshiftBinSize: 0.001
 redshiftDisBinSize: 0.2
+"""
+    else:
+        dlght_width = inputs_rail["dlght_width"]
+        dlght_zmin = inputs_rail["dlght_zmin"]
+        dlght_zmax =  inputs_rail["dlght_zmax"]
+
+        # will check later what to do with these parameters
+
+        paramfile_txt += \
+"""
+redshiftMin: 0.1
+redshiftMax: 1.101
+redshiftNumBinsGPpred: 100
+redshiftBinSize: 0.001
+redshiftDisBinSize: 0.2
+"""
+
+
+
+    paramfile_txt += \
+"""
 confidenceLevels: 0.1 0.50 0.68 0.95
 """
 
@@ -274,4 +314,4 @@ if __name__ == "__main__":
 
     param_txt=makeConfigParam(datapath,None)
 
-    print(param_txt)
+    logger.info(param_txt)
