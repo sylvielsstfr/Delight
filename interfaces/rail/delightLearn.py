@@ -53,7 +53,7 @@ def delightLearn(configfilename):
     numLines = lastLine - firstLine
 
     comm.Barrier()
-    msg ='Thread ' +  str(threadNum) + ' , analyzes lines ' + str(firstLine) + ' , to ' + syt(lastLine)
+    msg ='Thread ' +  str(threadNum) + ' , analyzes lines ' + str(firstLine) + ' , to ' + str(lastLine)
     logger.info(msg)
 
     DL = approx_DL()
