@@ -30,7 +30,7 @@ def processFilters(configfilename):
     """
 
     msg="----- processFilters ------"
-    logger.info("msg")
+    logger.info(msg)
 
 
     params = parseParamFile(configfilename, verbose=False, catFilesNeeded=False)
