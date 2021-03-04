@@ -62,7 +62,7 @@ def simulateWithSEDs(configfilename):
 
     # Generate training data
     #-------------------------
-    # pick set of redshift at random
+    # pick a set of redshift at random to be representative of training galaxies
     redshifts = np.random.uniform(low=redshiftGrid[0],high=redshiftGrid[-1],size=numObjects)
     #pick some SED type at random
     types = np.random.randint(0, high=numT, size=numObjects)

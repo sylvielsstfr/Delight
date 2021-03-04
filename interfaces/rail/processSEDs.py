@@ -62,9 +62,10 @@ def processSEDs(configfilename):
         seddata[:, 1] /= ref  # normalisation at lambdaRef
         sed_interp = interp1d(seddata[:, 0], seddata[:, 1]) # interpolation
 
-        # container of redshift/ flux
-        # each row correspond to fluxes in the different bands at a a fixed redshift
+        # container of redshift/ flux : matrix n_z x n_b for each template
+        # each column correspond to fluxes in the different bands at a a fixed redshift
         # redshift along row, fluxes along column
+        # model of flux as a function of redshift for each template
         f_mod = np.zeros((redshiftGrid.size, len(bandNames)))
 
         # Loop over bands
