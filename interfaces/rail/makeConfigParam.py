@@ -267,20 +267,29 @@ redshiftBinSize: 0.001
 redshiftDisBinSize: 0.2
 """
     else:
-        dlght_width = inputs_rail["dlght_width"]
-        dlght_zmin = inputs_rail["dlght_zmin"]
-        dlght_zmax =  inputs_rail["dlght_zmax"]
+
+        msg = "Decode redshift parameter from RAI config file"
+        logger.debug(msg)
+
+        dlght_redshiftMin           = inputs_rail["dlght_redshiftMin"]
+        dlght_redshiftMax           = inputs_rail["dlght_redshiftMax"]
+        dlght_redshiftNumBinsGPpred = inputs_rail["dlght_redshiftNumBinsGPpred"]
+        dlght_redshiftBinSize       = inputs_rail["dlght_redshiftBinSize"]
+        dlght_redshiftDisBinSize    = inputs_rail["dlght_redshiftDisBinSize"]
 
         # will check later what to do with these parameters
 
-        paramfile_txt += \
-"""
-redshiftMin: 0.1
-redshiftMax: 1.101
-redshiftNumBinsGPpred: 100
-redshiftBinSize: 0.001
-redshiftDisBinSize: 0.2
-"""
+        paramfile_txt += "redshiftMin: " + str(dlght_redshiftMin)
+        paramfile_txt += "\n"
+        paramfile_txt += "redshiftMax: " + str(dlght_redshiftMax)
+        paramfile_txt += "\n"
+        paramfile_txt += "redshiftNumBinsGPpred: " + str(dlght_redshiftNumBinsGPpred)
+        paramfile_txt += "\n"
+        paramfile_txt += "redshiftBinSize: " + str(dlght_redshiftBinSize)
+        paramfile_txt += "\n"
+        paramfile_txt += "redshiftDisBinSize: " + str(dlght_redshiftDisBinSize)
+        paramfile_txt += "\n"
+
 
 
 
