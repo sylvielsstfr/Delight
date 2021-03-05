@@ -137,7 +137,7 @@ catFile: data_lsst/galaxies-fluxredshifts.txt
 
     paramfile_txt +=  \
 """
-bandOrder: lsst_u lsst_u_var lsst_g lsst_g_var _ _ lsst_i lsst_i_var lsst_z lsst_z_var lsst_y lsst_y_var redshift
+bandOrder: lsst_u lsst_u_var lsst_g lsst_g_var lsst_r lsst_r_var lsst_i lsst_i_var lsst_z lsst_z_var lsst_y lsst_y_var redshift
 referenceBand: lsst_i
 extraFracFluxError: 1e-4
 """
