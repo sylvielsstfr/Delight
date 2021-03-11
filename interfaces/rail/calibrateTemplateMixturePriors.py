@@ -18,9 +18,40 @@ coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(
 
 
 
-comm = MPI.COMM_WORLD
-threadNum = comm.Get_rank()
-numThreads = comm.Get_size()
+
+def approx_flux_likelihood_multiobj(
+        f_obs,  # no, nf
+        f_obs_var,  # no, nf
+        f_mod,  # no, nt, nf
+        ell_hat,  # 1
+        ell_var,  # 1
+        returnChi2=False,
+        normalized=True):
+
+    assert len(f_obs.shape) == 2
+    assert len(f_obs_var.shape) == 2
+    assert len(f_mod.shape) == 3
+    no, nt, nf = f_mod.shape
+    f_obs_r = f_obs[:, None, :]
+    var = f_obs_var[:, None, :]
+    invvar = np.where(f_obs_r/var < 1e-6, 0.0, var**-1.0)  # nz * nt * nf
+    FOT = np.sum(f_mod * f_obs_r * invvar, axis=2)\
+        + ell_hat / ell_var  # no * nt
+    FTT = np.sum(f_mod**2 * invvar, axis=2)\
+        + 1. / ell_var  # no * nt
+    FOO = np.sum(f_obs_r**2 * invvar, axis=2)\
+        + ell_hat**2 / ell_var  # no * nt
+    sigma_det = np.prod(var, axis=2)
+    chi2 = FOO - FOT**2.0 / FTT  # no * nt
+    denom = np.sqrt(FTT)
+    if normalized:
+        denom *= np.sqrt(sigma_det * (2*np.pi)**nf * ell_var)
+    like = np.exp(-0.5*chi2) / denom  # no * nt
+    if returnChi2:
+        return chi2
+    else:
+        return like
+
 
 
 def calibrateTemplateMixturePriors(configfilename):
@@ -35,6 +66,10 @@ def calibrateTemplateMixturePriors(configfilename):
 
     paramFileName = configfilename
     params = parseParamFile(paramFileName, verbose=False)
+
+    comm = MPI.COMM_WORLD
+    threadNum = comm.Get_rank()
+    numThreads = comm.Get_size()
 
     DL = approx_DL()
     redshiftDistGrid, redshiftGrid, redshiftGridGP = createGrids(params)

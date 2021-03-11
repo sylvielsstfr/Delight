@@ -67,6 +67,8 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     mag_err_u_lsst = f['photometry/mag_err_u_lsst'][()]
     mag_err_y_lsst = f['photometry/mag_err_y_lsst'][()]
     mag_err_z_lsst = f['photometry/mag_err_z_lsst'][()]
+
+
     mag_g_lsst = f['photometry/mag_g_lsst'][()]
     mag_i_lsst = f['photometry/mag_i_lsst'][()]
     mag_r_lsst = f['photometry/mag_r_lsst'][()]
@@ -136,6 +138,10 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
                 noise = flux_err_y[k]
 
             fluxes[k, i] = trueFlux + noise * np.random.randn() # noisy flux
+
+            if fluxes[k, i]<0:
+                fluxes[k, i]=np.abs(noise)/10.
+
             fluxesVar[k, i] = noise**2.
 
     # container for training galaxies output
@@ -243,6 +249,10 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
 
 
             fluxes[k, i] = trueFlux + noise * np.random.randn()
+
+            if fluxes[k, i]<0:
+                fluxes[k, i]=np.abs(noise)/10.
+
             fluxesVar[k, i] = noise**2.
 
     data = np.zeros((numObjects, 1 + len(params['target_bandOrder'])))
