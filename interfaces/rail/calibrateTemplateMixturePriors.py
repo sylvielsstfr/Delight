@@ -52,9 +52,60 @@ def approx_flux_likelihood_multiobj(
     else:
         return like
 
+def lnprob(params, nt, allFluxes, allFluxesVar, zZmax, fmod_atZ, pmin, pmax):
+    if np.any(params > pmax) or np.any(params < pmin):
+        return - np.inf
+
+    alphas0 = dirichlet(params[0:nt], rsize=1).ravel()[None, :]  # 1, nt
+    alphas1 = dirichlet(params[nt:2*nt], rsize=1).ravel()[None, :]  # 1, nt
+    alphas_atZ = zZmax[:, None] * (alphas1 - alphas0) + alphas0  # no, nt
+    # fmod_atZ: no, nt, nf
+    fmod_atZ_t = (fmod_atZ * alphas_atZ[:, :, None]).sum(axis=1)[:, None, :]
+    # no, 1, nf
+    sigma_ell = 1e3
+    like_grid = approx_flux_likelihood_multiobj(allFluxes, allFluxesVar, fmod_atZ_t, 1, sigma_ell**2.).ravel()  # no,
+    eps = 1e-305
+    ind = like_grid > eps
+    theprob = np.log(like_grid[ind]).sum()
+    return theprob
 
 
-def calibrateTemplateMixturePriors(configfilename):
+
+
+
+def plot_params(params):
+    fig, axs = plt.subplots(4, 4, figsize=(16, 8))
+    axs = axs.ravel()
+    alphas = params[0:nt]
+    alpha0 = np.sum(alphas)
+    dirsamples = dirichlet(alphas, 1000)
+    for i in range(nt):
+        mean = alphas[i]/alpha0
+        std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
+        axs[i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
+        axs[i].axvline(mean, c='k', lw=2)
+        axs[i].axvline(1/nt, c='k', lw=1, ls='dashed')
+        axs[i].set_title('alpha0 = '+str(alphas[i]))
+        axs[i].set_xlim([0, 1])
+        axs[i].hist(dirsamples[:, i], 50, color="k", histtype="step")
+    alphas = params[nt:2*nt]
+    alpha0 = np.sum(alphas)
+    dirsamples = dirichlet(alphas, 1000)
+    for i in range(nt):
+        mean = alphas[i]/alpha0
+        std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
+        axs[nt+i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
+        axs[nt+i].axvline(mean, c='k', lw=2)
+        axs[nt+i].axvline(1/nt, c='k', lw=1, ls='dashed')
+        axs[nt+i].set_title('alpha1 = '+str(alphas[i]))
+        axs[nt+i].set_xlim([0, 1])
+        axs[nt+i].hist(dirsamples[:, i], 50, color="k", histtype="step")
+    fig.tight_layout()
+    return fig
+
+
+
+def calibrateTemplatePriors(configfilename,make_plot=False):
     """
 
     :param configfilename:
@@ -125,55 +176,6 @@ def calibrateTemplateMixturePriors(configfilename):
     zZmax = redshifts[:, 0] / redshiftGrid[-1]
 
 
-    def lnprob(params, nt, allFluxes, allFluxesVar, zZmax, fmod_atZ, pmin, pmax):
-        if np.any(params > pmax) or np.any(params < pmin):
-            return - np.inf
-
-        alphas0 = dirichlet(params[0:nt], rsize=1).ravel()[None, :]  # 1, nt
-        alphas1 = dirichlet(params[nt:2*nt], rsize=1).ravel()[None, :]  # 1, nt
-        alphas_atZ = zZmax[:, None] * (alphas1 - alphas0) + alphas0  # no, nt
-        # fmod_atZ: no, nt, nf
-        fmod_atZ_t = (fmod_atZ * alphas_atZ[:, :, None]).sum(axis=1)[:, None, :]
-        # no, 1, nf
-        sigma_ell = 1e3
-        like_grid = approx_flux_likelihood_multiobj(allFluxes, allFluxesVar, fmod_atZ_t, 1, sigma_ell**2.).ravel()  # no,
-        eps = 1e-305
-        ind = like_grid > eps
-        theprob = np.log(like_grid[ind]).sum()
-        return theprob
-
-
-    def plot_params(params):
-        fig, axs = plt.subplots(4, 4, figsize=(16, 8))
-        axs = axs.ravel()
-        alphas = params[0:nt]
-        alpha0 = np.sum(alphas)
-        dirsamples = dirichlet(alphas, 1000)
-        for i in range(nt):
-            mean = alphas[i]/alpha0
-            std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
-            axs[i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
-            axs[i].axvline(mean, c='k', lw=2)
-            axs[i].axvline(1/nt, c='k', lw=1, ls='dashed')
-            axs[i].set_title('alpha0 = '+str(alphas[i]))
-            axs[i].set_xlim([0, 1])
-            axs[i].hist(dirsamples[:, i], 50, color="k", histtype="step")
-        alphas = params[nt:2*nt]
-        alpha0 = np.sum(alphas)
-        dirsamples = dirichlet(alphas, 1000)
-        for i in range(nt):
-            mean = alphas[i]/alpha0
-            std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
-            axs[nt+i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
-            axs[nt+i].axvline(mean, c='k', lw=2)
-            axs[nt+i].axvline(1/nt, c='k', lw=1, ls='dashed')
-            axs[nt+i].set_title('alpha1 = '+str(alphas[i]))
-            axs[nt+i].set_xlim([0, 1])
-            axs[nt+i].hist(dirsamples[:, i], 50, color="k", histtype="step")
-        fig.tight_layout()
-        return fig
-
-
     pmin = np.repeat(0., 2*nt)
     pmax = np.repeat(200., 2*nt)
 
@@ -194,17 +196,18 @@ def calibrateTemplateMixturePriors(configfilename):
     params_mean = samples.mean(axis=0)
     params_std = samples.std(axis=0)
 
-    fig, axs = plt.subplots(4, 5, figsize=(16, 8))
-    axs = axs.ravel()
-    for i in range(ndim):
-        axs[i].hist(samples[:, i], 50, color="k", histtype="step")
-        axs[i].axvspan(params_mean[i]-params_std[i],params_mean[i]+params_std[i], color='gray', alpha=0.5)
-        axs[i].axvline(params_mean[i], c='k', lw=2)
-    fig.tight_layout()
-    fig.savefig('priormixture_parameters.pdf')
+    if make_plot:
+        fig, axs = plt.subplots(4, 5, figsize=(16, 8))
+        axs = axs.ravel()
+        for i in range(ndim):
+            axs[i].hist(samples[:, i], 50, color="k", histtype="step")
+            axs[i].axvspan(params_mean[i]-params_std[i],params_mean[i]+params_std[i], color='gray', alpha=0.5)
+            axs[i].axvline(params_mean[i], c='k', lw=2)
+        fig.tight_layout()
+        fig.savefig('priormixture_parameters.pdf')
 
-    fig = plot_params(params_mean)
-    fig.savefig('priormixture_meanparameters.pdf')
+        fig = plot_params(params_mean)
+        fig.savefig('priormixture_meanparameters.pdf')
 
     print("params_mean", params_mean)
     print("params_std", params_std)
@@ -219,8 +222,9 @@ def calibrateTemplateMixturePriors(configfilename):
     print("alpha1:", ', '.join(['%.2g' % x for x in alphas / alpha0]))
     print("alpha1 err:", ', '.join(['%.2g' % x for x in np.sqrt(alphas*(alpha0-alphas)/alpha0**2/(alpha0+1))]))
 
-    fig = corner.corner(samples)
-    fig.savefig("trianglemixture.pdf")
+    if make_plot:
+        fig = corner.corner(samples)
+        fig.savefig("trianglemixture.pdf")
 
 
 #-----------------------------------------------------------------------------------------
@@ -235,12 +239,12 @@ if __name__ == "__main__":
     logger.debug("__name__:"+__name__)
     logger.debug("__file__:"+__file__)
 
-    logger.info(" calibrateTemplateMixturePriors ---")
+    logger.info(" calibrate Template Priors ---")
 
     if len(sys.argv) < 2:
         raise Exception('Please provide a parameter file')
 
-    calibrateTemplateMixturePriors(sys.argv[1])
+    calibrateTemplatePriors(sys.argv[1])
 
 
 
