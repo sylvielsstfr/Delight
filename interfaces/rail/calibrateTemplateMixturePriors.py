@@ -19,93 +19,8 @@ coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(
 
 
 
-def approx_flux_likelihood_multiobj(
-        f_obs,  # no, nf
-        f_obs_var,  # no, nf
-        f_mod,  # no, nt, nf
-        ell_hat,  # 1
-        ell_var,  # 1
-        returnChi2=False,
-        normalized=True):
 
-    assert len(f_obs.shape) == 2
-    assert len(f_obs_var.shape) == 2
-    assert len(f_mod.shape) == 3
-    no, nt, nf = f_mod.shape
-    f_obs_r = f_obs[:, None, :]
-    var = f_obs_var[:, None, :]
-    invvar = np.where(f_obs_r/var < 1e-6, 0.0, var**-1.0)  # nz * nt * nf
-    FOT = np.sum(f_mod * f_obs_r * invvar, axis=2)\
-        + ell_hat / ell_var  # no * nt
-    FTT = np.sum(f_mod**2 * invvar, axis=2)\
-        + 1. / ell_var  # no * nt
-    FOO = np.sum(f_obs_r**2 * invvar, axis=2)\
-        + ell_hat**2 / ell_var  # no * nt
-    sigma_det = np.prod(var, axis=2)
-    chi2 = FOO - FOT**2.0 / FTT  # no * nt
-    denom = np.sqrt(FTT)
-    if normalized:
-        denom *= np.sqrt(sigma_det * (2*np.pi)**nf * ell_var)
-    like = np.exp(-0.5*chi2) / denom  # no * nt
-    if returnChi2:
-        return chi2
-    else:
-        return like
-
-def lnprob(params, nt, allFluxes, allFluxesVar, zZmax, fmod_atZ, pmin, pmax):
-    if np.any(params > pmax) or np.any(params < pmin):
-        return - np.inf
-
-    alphas0 = dirichlet(params[0:nt], rsize=1).ravel()[None, :]  # 1, nt
-    alphas1 = dirichlet(params[nt:2*nt], rsize=1).ravel()[None, :]  # 1, nt
-    alphas_atZ = zZmax[:, None] * (alphas1 - alphas0) + alphas0  # no, nt
-    # fmod_atZ: no, nt, nf
-    fmod_atZ_t = (fmod_atZ * alphas_atZ[:, :, None]).sum(axis=1)[:, None, :]
-    # no, 1, nf
-    sigma_ell = 1e3
-    like_grid = approx_flux_likelihood_multiobj(allFluxes, allFluxesVar, fmod_atZ_t, 1, sigma_ell**2.).ravel()  # no,
-    eps = 1e-305
-    ind = like_grid > eps
-    theprob = np.log(like_grid[ind]).sum()
-    return theprob
-
-
-
-
-
-def plot_params(params):
-    fig, axs = plt.subplots(4, 4, figsize=(16, 8))
-    axs = axs.ravel()
-    alphas = params[0:nt]
-    alpha0 = np.sum(alphas)
-    dirsamples = dirichlet(alphas, 1000)
-    for i in range(nt):
-        mean = alphas[i]/alpha0
-        std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
-        axs[i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
-        axs[i].axvline(mean, c='k', lw=2)
-        axs[i].axvline(1/nt, c='k', lw=1, ls='dashed')
-        axs[i].set_title('alpha0 = '+str(alphas[i]))
-        axs[i].set_xlim([0, 1])
-        axs[i].hist(dirsamples[:, i], 50, color="k", histtype="step")
-    alphas = params[nt:2*nt]
-    alpha0 = np.sum(alphas)
-    dirsamples = dirichlet(alphas, 1000)
-    for i in range(nt):
-        mean = alphas[i]/alpha0
-        std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
-        axs[nt+i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
-        axs[nt+i].axvline(mean, c='k', lw=2)
-        axs[nt+i].axvline(1/nt, c='k', lw=1, ls='dashed')
-        axs[nt+i].set_title('alpha1 = '+str(alphas[i]))
-        axs[nt+i].set_xlim([0, 1])
-        axs[nt+i].hist(dirsamples[:, i], 50, color="k", histtype="step")
-    fig.tight_layout()
-    return fig
-
-
-
-def calibrateTemplatePriors(configfilename,make_plot=False):
+def calibrateTemplateMixturePriors(configfilename,make_plot=False):
     """
 
     :param configfilename:
@@ -180,6 +95,59 @@ def calibrateTemplatePriors(configfilename,make_plot=False):
     pmax = np.repeat(200., 2*nt)
 
     ndim, nwalkers = 2*nt, 100
+
+    def approx_flux_likelihood_multiobj(
+            f_obs,  # no, nf
+            f_obs_var,  # no, nf
+            f_mod,  # no, nt, nf
+            ell_hat,  # 1
+            ell_var,  # 1
+            returnChi2=False,
+            normalized=True):
+
+        assert len(f_obs.shape) == 2
+        assert len(f_obs_var.shape) == 2
+        assert len(f_mod.shape) == 3
+        no, nt, nf = f_mod.shape
+        f_obs_r = f_obs[:, None, :]
+        var = f_obs_var[:, None, :]
+        invvar = np.where(f_obs_r / var < 1e-6, 0.0, var ** -1.0)  # nz * nt * nf
+        FOT = np.sum(f_mod * f_obs_r * invvar, axis=2) \
+              + ell_hat / ell_var  # no * nt
+        FTT = np.sum(f_mod ** 2 * invvar, axis=2) \
+              + 1. / ell_var  # no * nt
+        FOO = np.sum(f_obs_r ** 2 * invvar, axis=2) \
+              + ell_hat ** 2 / ell_var  # no * nt
+        sigma_det = np.prod(var, axis=2)
+        chi2 = FOO - FOT ** 2.0 / FTT  # no * nt
+        denom = np.sqrt(FTT)
+        if normalized:
+            denom *= np.sqrt(sigma_det * (2 * np.pi) ** nf * ell_var)
+        like = np.exp(-0.5 * chi2) / denom  # no * nt
+        if returnChi2:
+            return chi2
+        else:
+            return like
+
+    def lnprob(params, nt, allFluxes, allFluxesVar, zZmax, fmod_atZ, pmin, pmax):
+        if np.any(params > pmax) or np.any(params < pmin):
+            return - np.inf
+
+        alphas0 = dirichlet(params[0:nt], rsize=1).ravel()[None, :]  # 1, nt
+        alphas1 = dirichlet(params[nt:2 * nt], rsize=1).ravel()[None, :]  # 1, nt
+        alphas_atZ = zZmax[:, None] * (alphas1 - alphas0) + alphas0  # no, nt
+        # fmod_atZ: no, nt, nf
+        fmod_atZ_t = (fmod_atZ * alphas_atZ[:, :, None]).sum(axis=1)[:, None, :]
+        # no, 1, nf
+        sigma_ell = 1e3
+        like_grid = approx_flux_likelihood_multiobj(allFluxes, allFluxesVar, fmod_atZ_t, 1,
+                                                    sigma_ell ** 2.).ravel()  # no,
+        eps = 1e-305
+        ind = like_grid > eps
+        theprob = np.log(like_grid[ind]).sum()
+        return theprob
+
+
     p0 = [pmin + (pmax-pmin)*np.random.uniform(0, 1, size=ndim) for i in range(nwalkers)]
 
     for i in range(10):
@@ -222,10 +190,53 @@ def calibrateTemplatePriors(configfilename,make_plot=False):
     print("alpha1:", ', '.join(['%.2g' % x for x in alphas / alpha0]))
     print("alpha1 err:", ', '.join(['%.2g' % x for x in np.sqrt(alphas*(alpha0-alphas)/alpha0**2/(alpha0+1))]))
 
+
+
+    alphas = params_mean[0:nt]
+    betas = params_mean[nt:2 * nt]
+
+    alpha0 = np.sum(alphas)
+    print("p_t:", ' '.join(['%.2g' % x for x in alphas / alpha0]))
+    print("p_z_t:", ' '.join(['%.2g' % x for x in betas]))
+    print("p_t err:", ' '.join(['%.2g' % x for x in np.sqrt(alphas * (alpha0 - alphas) / alpha0 ** 2 / (alpha0 + 1))]))
+
+
+
+
     if make_plot:
         fig = corner.corner(samples)
         fig.savefig("trianglemixture.pdf")
 
+
+def plot_params(params):
+    fig, axs = plt.subplots(4, 4, figsize=(16, 8))
+    axs = axs.ravel()
+    alphas = params[0:nt]
+    alpha0 = np.sum(alphas)
+    dirsamples = dirichlet(alphas, 1000)
+    for i in range(nt):
+        mean = alphas[i]/alpha0
+        std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
+        axs[i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
+        axs[i].axvline(mean, c='k', lw=2)
+        axs[i].axvline(1/nt, c='k', lw=1, ls='dashed')
+        axs[i].set_title('alpha0 = '+str(alphas[i]))
+        axs[i].set_xlim([0, 1])
+        axs[i].hist(dirsamples[:, i], 50, color="k", histtype="step")
+    alphas = params[nt:2*nt]
+    alpha0 = np.sum(alphas)
+    dirsamples = dirichlet(alphas, 1000)
+    for i in range(nt):
+        mean = alphas[i]/alpha0
+        std = np.sqrt(alphas[i] * (alpha0-alphas[i]) / alpha0**2 / (alpha0+1))
+        axs[nt+i].axvspan(mean-std, mean+std, color='gray', alpha=0.5)
+        axs[nt+i].axvline(mean, c='k', lw=2)
+        axs[nt+i].axvline(1/nt, c='k', lw=1, ls='dashed')
+        axs[nt+i].set_title('alpha1 = '+str(alphas[i]))
+        axs[nt+i].set_xlim([0, 1])
+        axs[nt+i].hist(dirsamples[:, i], 50, color="k", histtype="step")
+    fig.tight_layout()
+    return fig
 
 #-----------------------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -244,7 +255,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise Exception('Please provide a parameter file')
 
-    calibrateTemplatePriors(sys.argv[1])
+    calibrateTemplateMixturePriors(sys.argv[1])
 
 
 
