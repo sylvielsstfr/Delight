@@ -140,7 +140,8 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
             fluxes[k, i] = trueFlux + noise * np.random.randn() # noisy flux
 
             if fluxes[k, i]<0:
-                fluxes[k, i]=np.abs(noise)/10.
+                #fluxes[k, i]=np.abs(noise)/10.
+                fluxes[k, i] = trueFlux
 
             fluxesVar[k, i] = noise**2.
 
@@ -251,7 +252,8 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
             fluxes[k, i] = trueFlux + noise * np.random.randn()
 
             if fluxes[k, i]<0:
-                fluxes[k, i]=np.abs(noise)/10.
+                #fluxes[k, i]=np.abs(noise)/10.
+                fluxes[k, i] = trueFlux
 
             fluxesVar[k, i] = noise**2.
 
