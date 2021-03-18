@@ -17,8 +17,107 @@ from delight.io import *
 from delight.utils import *
 import h5py
 
+from interfaces.rail.utils  import load_training_data, get_input_data_size_hdf5,load_raw_hdf5_data
+
 logger = logging.getLogger(__name__)
 coloredlogs.install(level='DEBUG', logger=logger,fmt='%(asctime)s,%(msecs)03d %(programname)s, %(name)s[%(process)d] %(levelname)s %(message)s')
+
+
+def group_entries(f):
+    """
+    group entries in single numpy array
+
+    """
+    galid = f['id'][()][:, np.newaxis]
+    redshift = f['redshift'][()][:, np.newaxis]
+    mag_err_g_lsst = f['mag_err_g_lsst'][()][:, np.newaxis]
+    mag_err_i_lsst = f['mag_err_i_lsst'][()][:, np.newaxis]
+    mag_err_r_lsst = f['mag_err_r_lsst'][()][:, np.newaxis]
+    mag_err_u_lsst = f['mag_err_u_lsst'][()][:, np.newaxis]
+    mag_err_y_lsst = f['mag_err_y_lsst'][()][:, np.newaxis]
+    mag_err_z_lsst = f['mag_err_z_lsst'][()][:, np.newaxis]
+    mag_g_lsst = f['mag_g_lsst'][()][:, np.newaxis]
+    mag_i_lsst = f['mag_i_lsst'][()][:, np.newaxis]
+    mag_r_lsst = f['mag_r_lsst'][()][:, np.newaxis]
+    mag_u_lsst = f['mag_u_lsst'][()][:, np.newaxis]
+    mag_y_lsst = f['mag_y_lsst'][()][:, np.newaxis]
+    mag_z_lsst = f['mag_z_lsst'][()][:, np.newaxis]
+
+    full_arr = np.hstack((galid, redshift, mag_u_lsst, mag_g_lsst, mag_r_lsst, mag_i_lsst, mag_z_lsst, mag_y_lsst, \
+                          mag_err_u_lsst, mag_err_g_lsst, mag_err_r_lsst, mag_err_i_lsst, mag_err_z_lsst,
+                          mag_err_y_lsst))
+    return full_arr
+
+
+def filter_mag_entries(d,nb=6):
+    """
+    Filter bad data with bad magnitudes
+
+    input
+      - d: array of magnitudes and errors
+      - nb : number of bands
+    output :
+      - indexes of row to be filtered
+
+    """
+
+    u = d[:, 2]
+    idx_u = np.where(u > 31.8)[0]
+
+    return idx_u
+
+
+def mag_to_flux(d,nb=6):
+    """
+
+    Convert magnitudes to fluxes
+
+    input:
+       -d : array of magnitudes with errors
+
+
+    :return:
+        array of fluxes with error
+    """
+
+    fluxes = np.zeros_like(d)
+
+    fluxes[:, 0] = d[:, 0]  # object index
+    fluxes[:, 1] = d[:, 1]  # redshift
+
+    for idx in np.arange(nb):
+        fluxes[:, 2 + idx] = np.power(10, -0.4 * d[:, 2 + idx]) # fluxes
+        fluxes[:, 8 + idx] = fluxes[:, 2 + idx] * d[:, 8 + idx] # errors on fluxes
+    return fluxes
+
+
+
+def filter_flux_entries(d,nb=6,nsig=5):
+    """
+    Filter noisy data on the the number SNR
+
+    input :
+     - d: flux and errors array
+     - nb : number of bands
+     - nsig : number of sigma
+
+     output:
+        indexes of row to suppress
+
+    """
+
+
+    # collection of indexes
+    indexes = []
+    indexes = np.array(indexes, dtype=np.int)
+
+    for idx in np.arange(nb):
+        ratio = d[:, 2 + idx] / d[:, 8 + idx]  # flux divided by sigma-flux
+        bad_indexes = np.where(ratio < nsig)[0]
+        indexes = np.concatenate((indexes, bad_indexes))
+
+    indexes = np.unique(indexes)
+    return np.sort(indexes)
 
 
 def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
@@ -45,52 +144,28 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     msg="read DESC hdf5 file {} ".format(desctraincatalogfile)
     logger.debug(msg)
 
-    with h5py.File(desctraincatalogfile, "r") as f:
-        # List all groups
-        msg="Keys: %s" % f.keys()
-        logger.debug(msg)
-        a_group_key = list(f.keys())[0]
+    f = load_raw_hdf5_data(desctraincatalogfile, groupname='photometry')
 
-        # Get the data
-        descdata = list(f[a_group_key])
+    # produce a numpy array
+    magdata = group_entries(f)
+    # filter bad data
+    indexes_bad = filter_mag_entries(magdata)
+    magdata_f = np.delete(magdata, indexes_bad, axis=0)
 
-    logger.debug(descdata)
+    # convert mag to fluxes
+    fdata = mag_to_flux(magdata_f)
 
-    f = h5py.File(desctraincatalogfile, 'r')
+    #filter bad data
+    indexes_bad = filter_flux_entries(fdata)
 
-    galid = f['photometry/id'][()]
-    redshifts = f['photometry/redshift'][()]
-
-    mag_err_g_lsst = f['photometry/mag_err_g_lsst'][()]
-    mag_err_i_lsst = f['photometry/mag_err_i_lsst'][()]
-    mag_err_r_lsst = f['photometry/mag_err_r_lsst'][()]
-    mag_err_u_lsst = f['photometry/mag_err_u_lsst'][()]
-    mag_err_y_lsst = f['photometry/mag_err_y_lsst'][()]
-    mag_err_z_lsst = f['photometry/mag_err_z_lsst'][()]
+    magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
+    fdata_f = np.delete(fdata, indexes_bad, axis=0)
 
 
-    mag_g_lsst = f['photometry/mag_g_lsst'][()]
-    mag_i_lsst = f['photometry/mag_i_lsst'][()]
-    mag_r_lsst = f['photometry/mag_r_lsst'][()]
-    mag_u_lsst = f['photometry/mag_u_lsst'][()]
-    mag_y_lsst = f['photometry/mag_y_lsst'][()]
-    mag_z_lsst = f['photometry/mag_z_lsst'][()]
+    gid = magdata_f[:, 0]
+    rs = magdata_f[:, 1]
 
-    # conversion of magnitude to flux
-    flux_g_lsst = np.power(10, -0.4 * mag_g_lsst)
-    flux_i_lsst = np.power(10, -0.4 * mag_i_lsst)
-    flux_r_lsst = np.power(10, -0.4 * mag_r_lsst)
-    flux_u_lsst = np.power(10, -0.4 * mag_u_lsst)
-    flux_y_lsst = np.power(10, -0.4 * mag_y_lsst)
-    flux_z_lsst = np.power(10, -0.4 * mag_z_lsst)
 
-    # Flux error
-    flux_err_u = mag_err_u_lsst * flux_u_lsst
-    flux_err_g = mag_err_g_lsst * flux_g_lsst
-    flux_err_r = mag_err_r_lsst * flux_r_lsst
-    flux_err_i = mag_err_i_lsst * flux_i_lsst
-    flux_err_z = mag_err_z_lsst * flux_z_lsst
-    flux_err_y = mag_err_y_lsst * flux_y_lsst
 
 
     # 2) parameter file
@@ -98,7 +173,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     params = parseParamFile(configfilename, verbose=False, catFilesNeeded=False)
 
     numB = len(params['bandNames'])
-    numObjects = len(galid)
+    numObjects = len(gid)
 
     msg = "get {} objects ".format(numObjects)
     logger.debug(msg)
@@ -118,26 +193,11 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     for k in range(numObjects):
         #loop on number of bands
         for i in range(numB):
-            if i==0:
-                trueFlux = flux_u_lsst[k]
-                noise = flux_err_u[k]
-            elif i==1:
-                trueFlux = flux_g_lsst[k]
-                noise = flux_err_g[k]
-            elif i==2:
-                trueFlux = flux_r_lsst[k]
-                noise = flux_err_r[k]
-            elif i==3:
-                trueFlux = flux_i_lsst[k]
-                noise = flux_err_i[k]
-            elif i == 4:
-                trueFlux = flux_z_lsst[k]
-                noise = flux_err_z[k]
-            elif i == 5:
-                trueFlux = flux_y_lsst[k]
-                noise = flux_err_y[k]
+            trueFlux = fdata_f[k,2+i]
+            noise    = fdata_f[k,8+i]
 
-            fluxes[k, i] = trueFlux + noise * np.random.randn() # noisy flux
+            #fluxes[k, i] = trueFlux + noise * np.random.randn() # noisy flux
+            fluxes[k, i] = trueFlux
 
             if fluxes[k, i]<0:
                 #fluxes[k, i]=np.abs(noise)/10.
@@ -153,15 +213,21 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     for ib, pf, pfv in zip(bandIndices, bandColumns, bandVarColumns):
         data[:, pf] = fluxes[:, ib]
         data[:, pfv] = fluxesVar[:, ib]
-    data[:, redshiftColumn] = redshifts
+    data[:, redshiftColumn] = rs
     data[:, -1] = 0  # NO type
-
 
 
     msg="write training file {}".format(params['trainingFile'])
     logger.debug(msg)
-    np.savetxt(params['trainingFile'], data)
 
+    outputdir=os.path.dirname(params['trainingFile'])
+    if not os.path.exists(outputdir):
+        msg = " outputdir not existing {} then create it ".format(outputdir)
+        logger.info(msg)
+        os.makedirs(outputdir)
+
+
+    np.savetxt(params['trainingFile'], data)
 
 
 
@@ -173,52 +239,31 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     msg = "read DESC hdf5 file {} ".format(desctargetcatalogfile)
     logger.debug(msg)
 
-    with h5py.File(desctargetcatalogfile, "r") as f:
-        # List all groups
-        msg = "Keys: %s" % f.keys()
-        logger.debug(msg)
-        a_group_key = list(f.keys())[0]
+    f = load_raw_hdf5_data(desctargetcatalogfile, groupname='photometry')
 
-        # Get the data
-        descdata = list(f[a_group_key])
+    # produce a numpy array
+    magdata = group_entries(f)
+    # filter bad data
+    indexes_bad = filter_mag_entries(magdata)
+    magdata_f = np.delete(magdata, indexes_bad, axis=0)
 
-    logger.debug(descdata)
+    # convert mag to fluxes
+    fdata = mag_to_flux(magdata_f)
 
-    f = h5py.File(desctargetcatalogfile, 'r')
+    # filter bad data
+    indexes_bad = filter_flux_entries(fdata)
 
-    galid = f['photometry/id'][()]
-    redshifts = f['photometry/redshift'][()]
+    magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
+    fdata_f = np.delete(fdata, indexes_bad, axis=0)
 
-    mag_err_g_lsst = f['photometry/mag_err_g_lsst'][()]
-    mag_err_i_lsst = f['photometry/mag_err_i_lsst'][()]
-    mag_err_r_lsst = f['photometry/mag_err_r_lsst'][()]
-    mag_err_u_lsst = f['photometry/mag_err_u_lsst'][()]
-    mag_err_y_lsst = f['photometry/mag_err_y_lsst'][()]
-    mag_err_z_lsst = f['photometry/mag_err_z_lsst'][()]
-    mag_g_lsst = f['photometry/mag_g_lsst'][()]
-    mag_i_lsst = f['photometry/mag_i_lsst'][()]
-    mag_r_lsst = f['photometry/mag_r_lsst'][()]
-    mag_u_lsst = f['photometry/mag_u_lsst'][()]
-    mag_y_lsst = f['photometry/mag_y_lsst'][()]
-    mag_z_lsst = f['photometry/mag_z_lsst'][()]
+    gid = magdata_f[:, 0]
+    rs = magdata_f[:, 1]
 
-    # conversion of magnitude to flux
-    flux_g_lsst = np.power(10, -0.4 * mag_g_lsst)
-    flux_i_lsst = np.power(10, -0.4 * mag_i_lsst)
-    flux_r_lsst = np.power(10, -0.4 * mag_r_lsst)
-    flux_u_lsst = np.power(10, -0.4 * mag_u_lsst)
-    flux_y_lsst = np.power(10, -0.4 * mag_y_lsst)
-    flux_z_lsst = np.power(10, -0.4 * mag_z_lsst)
 
-    # Flux error
-    flux_err_u = mag_err_u_lsst * flux_u_lsst
-    flux_err_g = mag_err_g_lsst * flux_g_lsst
-    flux_err_r = mag_err_r_lsst * flux_r_lsst
-    flux_err_i = mag_err_i_lsst * flux_i_lsst
-    flux_err_z = mag_err_z_lsst * flux_z_lsst
-    flux_err_y = mag_err_y_lsst * flux_y_lsst
 
-    numObjects = len(galid)
+
+
+    numObjects = len(gid)
     msg = "get {} objects ".format(numObjects)
     logger.debug(msg)
 
@@ -229,27 +274,11 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
         # loop on bands
         for i in range(numB):
             # compute the flux in that band at the redshift
-            if i==0:
-                trueFlux = flux_u_lsst[k]
-                noise = flux_err_u[k]
-            elif i==1:
-                trueFlux = flux_g_lsst[k]
-                noise = flux_err_g[k]
-            elif i==2:
-                trueFlux = flux_r_lsst[k]
-                noise = flux_err_r[k]
-            elif i==3:
-                trueFlux = flux_i_lsst[k]
-                noise = flux_err_i[k]
-            elif i == 4:
-                trueFlux = flux_z_lsst[k]
-                noise = flux_err_z[k]
-            elif i == 5:
-                trueFlux = flux_y_lsst[k]
-                noise = flux_err_y[k]
+            trueFlux = fdata_f[k, 2 + i]
+            noise = fdata_f[k, 8 + i]
 
-
-            fluxes[k, i] = trueFlux + noise * np.random.randn()
+            #fluxes[k, i] = trueFlux + noise * np.random.randn()
+            fluxes[k, i] = trueFlux
 
             if fluxes[k, i]<0:
                 #fluxes[k, i]=np.abs(noise)/10.
@@ -263,7 +292,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     for ib, pf, pfv in zip(bandIndices, bandColumns, bandVarColumns):
         data[:, pf] = fluxes[:, ib]
         data[:, pfv] = fluxesVar[:, ib]
-    data[:, redshiftColumn] = redshifts
+    data[:, redshiftColumn] = rs
     data[:, -1] = 0  # NO TYPE
 
     msg = "write file {}".format(os.path.basename(params['targetFile']))
@@ -271,6 +300,12 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
 
     msg = "write target file {}".format(params['targetFile'])
     logger.debug(msg)
+
+    outputdir = os.path.dirname(params['targetFile'])
+    if not os.path.exists(outputdir):
+        msg = " outputdir not existing {} then create it ".format(outputdir)
+        logger.info(msg)
+        os.makedirs(outputdir)
 
     np.savetxt(params['targetFile'], data)
 
@@ -286,6 +321,6 @@ if __name__ == "__main__":
 
 
     if len(sys.argv) < 4:
-        raise Exception('Please provide a parameter file and the tranning and catalog files')
+        raise Exception('Please provide a parameter file and the training and validation and catalog files')
 
     convertDESCcat(sys.argv[1],sys.argv[2],sys.argv[3])
