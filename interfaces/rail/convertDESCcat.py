@@ -120,6 +120,104 @@ def filter_flux_entries(d,nb=6,nsig=5):
     return np.sort(indexes)
 
 
+def convertDESCcatChunk(configfilename,data,chunknum):
+
+        """
+
+        Convert files in ascii format to be used by Delight
+
+        input args:
+        - configfilename : Delight configuration file containg path for output files (flux variances and redshifts)
+        - data
+        - chunknum : number of the chunk
+
+        output :
+        the Delight training and target file which path is in configuration file
+
+        :param configfilename:
+        :return:
+        """
+        msg="--- Convert DESC catalogs chunck {}---".format(chunknum)
+        logger.info(msg)
+
+
+        # produce a numpy array
+        magdata = group_entries(data)
+        # filter bad data
+        indexes_bad = filter_mag_entries(magdata)
+        magdata_f = np.delete(magdata, indexes_bad, axis=0)
+
+        # convert mag to fluxes
+        fdata = mag_to_flux(magdata_f)
+
+        # filter bad data
+        indexes_bad = filter_flux_entries(fdata)
+
+        magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
+        fdata_f = np.delete(fdata, indexes_bad, axis=0)
+
+        gid = magdata_f[:, 0]
+        rs = magdata_f[:, 1]
+
+        # 2) parameter file
+
+        params = parseParamFile(configfilename, verbose=False, catFilesNeeded=False)
+
+        numB = len(params['bandNames'])
+        numObjects = len(gid)
+
+        msg = "get {} objects ".format(numObjects)
+        logger.debug(msg)
+
+        logger.debug(params['bandNames'])
+
+        # Generate training data
+        # -------------------------
+
+        # what is fluxes and fluxes variance
+        fluxes, fluxesVar = np.zeros((numObjects, numB)), np.zeros((numObjects, numB))
+
+        # loop on objects to simulate for the training and save in output training file
+        for k in range(numObjects):
+            # loop on number of bands
+            for i in range(numB):
+                trueFlux = fdata_f[k, 2 + i]
+                noise = fdata_f[k, 8 + i]
+
+                # fluxes[k, i] = trueFlux + noise * np.random.randn() # noisy flux
+                fluxes[k, i] = trueFlux
+
+                if fluxes[k, i] < 0:
+                    # fluxes[k, i]=np.abs(noise)/10.
+                    fluxes[k, i] = trueFlux
+
+                fluxesVar[k, i] = noise ** 2.
+
+        # container for training galaxies output
+        # at some redshift, provides the flux and its variance inside each band
+        data = np.zeros((numObjects, 1 + len(params['training_bandOrder'])))
+        bandIndices, bandNames, bandColumns, bandVarColumns, redshiftColumn, refBandColumn = readColumnPositions(params,
+                                                                                                                 prefix="training_")
+
+        for ib, pf, pfv in zip(bandIndices, bandColumns, bandVarColumns):
+            data[:, pf] = fluxes[:, ib]
+            data[:, pfv] = fluxesVar[:, ib]
+        data[:, redshiftColumn] = rs
+        data[:, -1] = 0  # NO type
+
+        msg = "write training file {}".format(params['trainingFile'])
+        logger.debug(msg)
+
+        outputdir = os.path.dirname(params['trainingFile'])
+        if not os.path.exists(outputdir):
+            msg = " outputdir not existing {} then create it ".format(outputdir)
+            logger.info(msg)
+            os.makedirs(outputdir)
+
+        np.savetxt(params['trainingFile'], data)
+
+
+
 def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     """
 

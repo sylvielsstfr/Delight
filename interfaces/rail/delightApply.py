@@ -66,10 +66,10 @@ def delightApply(configfilename):
     numLines = lastLine - firstLine
 
     if threadNum == 0:
-        msg= 'Number of Training Objects' +  str(numObjectsTraining)
+        msg= 'Number of Training Objects ' +  str(numObjectsTraining)
         logger.info(msg)
 
-        msg='Number of Target Objects' + str(numObjectsTarget)
+        msg='Number of Target Objects ' + str(numObjectsTarget)
         logger.info(msg)
 
     comm.Barrier()
