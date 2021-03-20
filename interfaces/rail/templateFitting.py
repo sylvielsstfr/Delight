@@ -36,7 +36,6 @@ def templateFitting(configfilename):
     numThreads = comm.Get_size()
 
     if threadNum == 0:
-        print("--- TEMPLATE FITTING ---")
         logger.info("--- TEMPLATE FITTING ---")
 
 
