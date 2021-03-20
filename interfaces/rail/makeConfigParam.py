@@ -268,7 +268,7 @@ redshiftDisBinSize: 0.2
 """
     else:
 
-        msg = "Decode redshift parameter from RAI config file"
+        msg = "Decode redshift parameter from RAIL config file"
         logger.debug(msg)
 
         dlght_redshiftMin           = inputs_rail["dlght_redshiftMin"]

@@ -171,13 +171,13 @@ def convertDESCcatChunk(configfilename,data,chunknum):
 
         logger.debug(params['bandNames'])
 
-        # Generate training data
+        # Generate target data
         # -------------------------
 
         # what is fluxes and fluxes variance
         fluxes, fluxesVar = np.zeros((numObjects, numB)), np.zeros((numObjects, numB))
 
-        # loop on objects to simulate for the training and save in output training file
+        # loop on objects to simulate for the target and save in output trarget file
         for k in range(numObjects):
             # loop on number of bands
             for i in range(numB):
@@ -193,28 +193,33 @@ def convertDESCcatChunk(configfilename,data,chunknum):
 
                 fluxesVar[k, i] = noise ** 2.
 
-        # container for training galaxies output
+        # container for target galaxies output
         # at some redshift, provides the flux and its variance inside each band
-        data = np.zeros((numObjects, 1 + len(params['training_bandOrder'])))
+        
+
+        data = np.zeros((numObjects, 1 + len(params['target_bandOrder'])))
         bandIndices, bandNames, bandColumns, bandVarColumns, redshiftColumn, refBandColumn = readColumnPositions(params,
-                                                                                                                 prefix="training_")
+                                                                                                                 prefix="target_")
 
         for ib, pf, pfv in zip(bandIndices, bandColumns, bandVarColumns):
             data[:, pf] = fluxes[:, ib]
             data[:, pfv] = fluxesVar[:, ib]
         data[:, redshiftColumn] = rs
-        data[:, -1] = 0  # NO type
+        data[:, -1] = 0  # NO TYPE
 
-        msg = "write training file {}".format(params['trainingFile'])
+        msg = "write file {}".format(os.path.basename(params['targetFile']))
         logger.debug(msg)
 
-        outputdir = os.path.dirname(params['trainingFile'])
+        msg = "write target file {}".format(params['targetFile'])
+        logger.debug(msg)
+
+        outputdir = os.path.dirname(params['targetFile'])
         if not os.path.exists(outputdir):
             msg = " outputdir not existing {} then create it ".format(outputdir)
             logger.info(msg)
             os.makedirs(outputdir)
 
-        np.savetxt(params['trainingFile'], data)
+        np.savetxt(params['targetFile'], data)
 
 
 
