@@ -120,7 +120,7 @@ def filter_flux_entries(d,nb=6,nsig=5):
     return np.sort(indexes)
 
 
-def convertDESCcatChunk(configfilename,data,chunknum):
+def convertDESCcatChunk(configfilename,data,chunknum,flag_filter=False):
 
         """
 
@@ -144,17 +144,23 @@ def convertDESCcatChunk(configfilename,data,chunknum):
         # produce a numpy array
         magdata = group_entries(data)
         # filter bad data
-        indexes_bad = filter_mag_entries(magdata)
-        magdata_f = np.delete(magdata, indexes_bad, axis=0)
+        if flag_filter:
+            indexes_bad = filter_mag_entries(magdata)
+            magdata_f = np.delete(magdata, indexes_bad, axis=0)
+        else:
+            magdata_f = magdata
 
-        # convert mag to fluxes
+            # convert mag to fluxes
         fdata = mag_to_flux(magdata_f)
 
         # filter bad data
-        indexes_bad = filter_flux_entries(fdata)
+        if flag_filter:
+            indexes_bad = filter_flux_entries(fdata)
+            fdata_f = np.delete(fdata, indexes_bad, axis=0)
+        else:
+            fdata_f=fdata
 
-        magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
-        fdata_f = np.delete(fdata, indexes_bad, axis=0)
+
 
         gid = magdata_f[:, 0]
         rs = magdata_f[:, 1]
@@ -223,7 +229,7 @@ def convertDESCcatChunk(configfilename,data,chunknum):
 
 
 
-def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
+def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,flag_filter=True):
     """
 
     Convert files in ascii format to be used by Delight
@@ -252,17 +258,21 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     # produce a numpy array
     magdata = group_entries(f)
     # filter bad data
-    indexes_bad = filter_mag_entries(magdata)
-    magdata_f = np.delete(magdata, indexes_bad, axis=0)
+    if flag_filter:
+        indexes_bad = filter_mag_entries(magdata)
+        magdata_f = np.delete(magdata, indexes_bad, axis=0)
+    else:
+        magdata_f=magdata
 
     # convert mag to fluxes
     fdata = mag_to_flux(magdata_f)
 
     #filter bad data
-    indexes_bad = filter_flux_entries(fdata)
-
-    magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
-    fdata_f = np.delete(fdata, indexes_bad, axis=0)
+    if flag_filter:
+        indexes_bad = filter_flux_entries(fdata)
+        fdata_f = np.delete(fdata, indexes_bad, axis=0)
+    else:
+        fdata_f=fdata
 
 
     gid = magdata_f[:, 0]
@@ -347,22 +357,25 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile):
     # produce a numpy array
     magdata = group_entries(f)
     # filter bad data
-    indexes_bad = filter_mag_entries(magdata)
-    magdata_f = np.delete(magdata, indexes_bad, axis=0)
 
-    # convert mag to fluxes
+    if flag_filter:
+        indexes_bad = filter_mag_entries(magdata)
+        magdata_f = np.delete(magdata, indexes_bad, axis=0)
+    else:
+        magdata_f = magdata
+
+        # convert mag to fluxes
     fdata = mag_to_flux(magdata_f)
 
     # filter bad data
-    indexes_bad = filter_flux_entries(fdata)
-
-    magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
-    fdata_f = np.delete(fdata, indexes_bad, axis=0)
+    if flag_filter:
+        indexes_bad = filter_flux_entries(fdata)
+        fdata_f = np.delete(fdata, indexes_bad, axis=0)
+    else:
+        fdata_f = fdata
 
     gid = magdata_f[:, 0]
     rs = magdata_f[:, 1]
-
-
 
 
 
