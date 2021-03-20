@@ -325,7 +325,7 @@ def makeConfigParamChunk(path,inputs_rail,chunknum):
     logger.debug("__name__:"+__name__)
     logger.debug("__file__"+__file__)
 
-    msg = "----- makeConfigParam ------"
+    msg = "----- makeConfigParamChunk ------"
     logger.info(msg)
 
     logger.debug(" received path = "+ path)
