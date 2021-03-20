@@ -137,7 +137,7 @@ def convertDESCcatChunk(configfilename,data,chunknum,flag_filter=False):
         :param configfilename:
         :return:
         """
-        msg="--- Convert DESC catalogs chunck {}---".format(chunknum)
+        msg="--- Convert DESC catalogs chunk {}---".format(chunknum)
         logger.info(msg)
 
 
@@ -157,6 +157,7 @@ def convertDESCcatChunk(configfilename,data,chunknum,flag_filter=False):
         if flag_filter:
             indexes_bad = filter_flux_entries(fdata)
             fdata_f = np.delete(fdata, indexes_bad, axis=0)
+            magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
         else:
             fdata_f=fdata
 
@@ -271,6 +272,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     if flag_filter:
         indexes_bad = filter_flux_entries(fdata)
         fdata_f = np.delete(fdata, indexes_bad, axis=0)
+        magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
     else:
         fdata_f=fdata
 
@@ -371,6 +373,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     if flag_filter:
         indexes_bad = filter_flux_entries(fdata)
         fdata_f = np.delete(fdata, indexes_bad, axis=0)
+        magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
     else:
         fdata_f = fdata
 
