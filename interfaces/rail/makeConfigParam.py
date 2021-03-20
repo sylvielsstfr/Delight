@@ -398,9 +398,10 @@ targetFile: data_lsst/galaxies-fluxredshifts2.txt
         thepath=inputs_rail["tempdatadir"]
         paramfile_txt += "trainingFile: " + os.path.join(thepath, 'galaxies-fluxredshifts.txt')
         paramfile_txt += "\n"
-        paramfile_txt += "targetFile: " +  os.path.join(thepath, 'galaxies-fluxredshifts2.txt')
-
-
+        ####
+        thepath = inputs_rail["tempdatadir"]
+        filename = 'galaxies-fluxredshifts2_{}.txt'.format(chunknum)
+        paramfile_txt += "targetFile: " +  os.path.join(thepath, filename)
 
     # 5) Training Section
 
