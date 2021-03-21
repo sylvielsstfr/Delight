@@ -120,7 +120,7 @@ def filter_flux_entries(d,nb=6,nsig=5):
     return np.sort(indexes)
 
 
-def convertDESCcatChunk(configfilename,data,chunknum,flag_filter=False):
+def convertDESCcatChunk(configfilename,data,chunknum,flag_filter_validation = True, snr_cut_validation = 5):
 
         """
 
@@ -144,7 +144,7 @@ def convertDESCcatChunk(configfilename,data,chunknum,flag_filter=False):
         # produce a numpy array
         magdata = group_entries(data)
         # filter bad data
-        if flag_filter:
+        if flag_filter_validation:
             indexes_bad = filter_mag_entries(magdata)
             magdata_f = np.delete(magdata, indexes_bad, axis=0)
         else:
@@ -154,8 +154,8 @@ def convertDESCcatChunk(configfilename,data,chunknum,flag_filter=False):
         fdata = mag_to_flux(magdata_f)
 
         # filter bad data
-        if flag_filter:
-            indexes_bad = filter_flux_entries(fdata)
+        if flag_filter_validation:
+            indexes_bad = filter_flux_entries(fdata,nsig=snr_cut_validation)
             fdata_f = np.delete(fdata, indexes_bad, axis=0)
             magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
         else:
@@ -230,7 +230,9 @@ def convertDESCcatChunk(configfilename,data,chunknum,flag_filter=False):
 
 
 
-def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,flag_filter=True):
+def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,\
+                   flag_filter_training=True,flag_filter_validation=True,snr_cut_training=5,snr_cut_validation=5):
+
     """
 
     Convert files in ascii format to be used by Delight
@@ -251,7 +253,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     logger.info("--- Convert DESC training and target catalogs ---")
 
     # 1) DESC catalog file
-    msg="read DESC hdf5 file {} ".format(desctraincatalogfile)
+    msg="read DESC hdf5 training file {} ".format(desctraincatalogfile)
     logger.debug(msg)
 
     f = load_raw_hdf5_data(desctraincatalogfile, groupname='photometry')
@@ -259,7 +261,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     # produce a numpy array
     magdata = group_entries(f)
     # filter bad data
-    if flag_filter:
+    if flag_filter_training:
         indexes_bad = filter_mag_entries(magdata)
         magdata_f = np.delete(magdata, indexes_bad, axis=0)
     else:
@@ -269,8 +271,8 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     fdata = mag_to_flux(magdata_f)
 
     #filter bad data
-    if flag_filter:
-        indexes_bad = filter_flux_entries(fdata)
+    if flag_filter_training:
+        indexes_bad = filter_flux_entries(fdata,nsig=snr_cut_training)
         fdata_f = np.delete(fdata, indexes_bad, axis=0)
         magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
     else:
@@ -351,7 +353,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     #-----------------------------------------------------------
 
     # 1) DESC catalog file
-    msg = "read DESC hdf5 file {} ".format(desctargetcatalogfile)
+    msg = "read DESC hdf5 validation file {} ".format(desctargetcatalogfile)
     logger.debug(msg)
 
     f = load_raw_hdf5_data(desctargetcatalogfile, groupname='photometry')
@@ -360,7 +362,7 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     magdata = group_entries(f)
     # filter bad data
 
-    if flag_filter:
+    if flag_filter_validation:
         indexes_bad = filter_mag_entries(magdata)
         magdata_f = np.delete(magdata, indexes_bad, axis=0)
     else:
@@ -370,8 +372,8 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,fla
     fdata = mag_to_flux(magdata_f)
 
     # filter bad data
-    if flag_filter:
-        indexes_bad = filter_flux_entries(fdata)
+    if flag_filter_validation:
+        indexes_bad = filter_flux_entries(fdata,nsig=snr_cut_validation)
         fdata_f = np.delete(fdata, indexes_bad, axis=0)
         magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
     else:
