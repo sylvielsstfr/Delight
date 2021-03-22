@@ -11,6 +11,10 @@
 import sys
 import os
 import numpy as np
+from functools import reduce
+
+import pprint
+
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from delight.io import *
@@ -123,19 +127,23 @@ def filter_flux_entries(d,nb=6,nsig=5):
 def convertDESCcatChunk(configfilename,data,chunknum,flag_filter_validation = True, snr_cut_validation = 5):
 
         """
+        convertDESCcatChunk(configfilename,data,chunknum,flag_filter_validation = True, snr_cut_validation = 5)
 
         Convert files in ascii format to be used by Delight
+        Input data can be filtered by series of filters. But it is necessary to remember which entries are kept,
+        which are eliminated
 
         input args:
-        - configfilename : Delight configuration file containg path for output files (flux variances and redshifts)
-        - data
+        - configfilename : Delight configuration file containing path for output files (flux variances and redshifts)
+        - data : the DC2 data
         - chunknum : number of the chunk
+        - filter_validation : Flag to activate quality filter data
+        - snr_cut_validation : cut on flux SNR
 
         output :
-        the Delight training and target file which path is in configuration file
-
-        :param configfilename:
+        - the target file of the chunk which path is in configuration file
         :return:
+        - the list of selected (unfiltered DC2 data)
         """
         msg="--- Convert DESC catalogs chunk {}---".format(chunknum)
         logger.info(msg)
@@ -143,28 +151,84 @@ def convertDESCcatChunk(configfilename,data,chunknum,flag_filter_validation = Tr
 
         # produce a numpy array
         magdata = group_entries(data)
-        # filter bad data
+
+
+        # remember the number of entries
+        Nin = magdata.shape[0]
+        msg = "Number of objects = {} , in chunk : {}".format(Nin,chunknum)
+        logger.debug(msg)
+
+
+        # keep indexes to filter data with bad magnitudes
         if flag_filter_validation:
-            indexes_bad = filter_mag_entries(magdata)
-            magdata_f = np.delete(magdata, indexes_bad, axis=0)
+            indexes_bad_mag = filter_mag_entries(magdata)
+            #magdata_f = np.delete(magdata, indexes_bad_mag, axis=0)
+            magdata_f = magdata # filtering will be done later
+
+
         else:
+            indexes_bad_mag=np.array([])
             magdata_f = magdata
 
-            # convert mag to fluxes
+        Nbadmag = len(indexes_bad_mag)
+        msg = "Number of objects with bad magnitudes = {} , in chunk : {}".format(Nbadmag, chunknum)
+        logger.debug(msg)
+
+        #print("indexes_bad_mag = ",indexes_bad_mag)
+
+
+        # convert mag to fluxes
         fdata = mag_to_flux(magdata_f)
 
-        # filter bad data
+        # keep indexes to filter data with bad SNR
         if flag_filter_validation:
-            indexes_bad = filter_flux_entries(fdata,nsig=snr_cut_validation)
-            fdata_f = np.delete(fdata, indexes_bad, axis=0)
-            magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
+            indexes_bad_snr = filter_flux_entries(fdata, nsig = snr_cut_validation)
+            fdata_f = fdata
+            #fdata_f = np.delete(fdata, indexes_bad, axis=0)
+            #magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
         else:
             fdata_f=fdata
+            indexes_bad_snr = np.array([])
+
+
+        Nbadsnr = len(indexes_bad_snr)
+        msg = "Number of objects with bad SNR = {} , in chunk : {}".format(Nbadsnr, chunknum)
+        logger.debug(msg)
+
+        #print("indexes_bad_snr = ", indexes_bad_snr)
+
+        # make union of indexes (unique id) before removing them for Delight
+        idxToRemove = reduce(np.union1d,(indexes_bad_mag,indexes_bad_snr))
+        NtoRemove=len(idxToRemove)
+        msg = "Number of objects filtered out = {} , in chunk : {}".format(NtoRemove, chunknum)
+        logger.debug(msg)
+
+        #print("indexes_to_remove = ", idxToRemove)
+
+        #pprint(idxToRemove)
+
+        # fdata_f contains the fluxes and errors to be send to Delight
+
+        # indexes of full input dataset
+        idxInitial = np.arange(Nin)
+
+        if NtoRemove>0:
+            fdata_f = np.delete(fdata_f,idxToRemove, axis=0)
+            idxFinal=np.delete(idxInitial,idxToRemove, axis=0)
+        else:
+            idxFinal = idxInitial
+
+
+        Nkept = len(idxFinal)
+        msg = "Number of objects kept = {} , in chunk : {}".format(Nkept, chunknum)
+        logger.debug(msg)
+
+        #print("indexes_kept = ", idxFinal)
 
 
 
-        gid = magdata_f[:, 0]
-        rs = magdata_f[:, 1]
+        gid = fdata_f[:, 0]
+        rs = fdata_f[:, 1]
 
         # 2) parameter file
 
@@ -228,25 +292,35 @@ def convertDESCcatChunk(configfilename,data,chunknum,flag_filter_validation = Tr
 
         np.savetxt(params['targetFile'], data)
 
+        # return the index of selected data
+        return idxFinal
+
 
 
 def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,\
                    flag_filter_training=True,flag_filter_validation=True,snr_cut_training=5,snr_cut_validation=5):
 
     """
+    convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,\
+                   flag_filter_training=True,flag_filter_validation=True,snr_cut_training=5,snr_cut_validation=5):
+
 
     Convert files in ascii format to be used by Delight
 
     input args:
-    - configfilename : Delight configuration file containg path for output files (flux variances and redshifts)
+    - configfilename : Delight configuration file containingg path for output files (flux variances and redshifts)
     - desctraincatalogfile : training file provided by RAIL (hdf5 format)
     - desctargetcatalogfile : target file provided by RAIL (hdf5 format)
+    - flag_filter_training : Activate filtering on training data
+    - flag_filter_validation : Activate filtering on validation data
+    - snr_cut_training : Cut on flux SNR in training data
+    - snr_cut_validation : Cut on flux SNR in validation data
 
     output :
-    the Delight training and target file which path is in configuration file
+    - the Delight training and target file which path is in configuration file
 
-    :param configfilename:
-    :return:
+    :return: nothing
+
     """
 
 
@@ -260,29 +334,72 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,\
 
     # produce a numpy array
     magdata = group_entries(f)
-    # filter bad data
+
+    # remember the number of entries
+    Nin = magdata.shape[0]
+    msg = "Number of objects = {} , in  training dataset".format(Nin)
+    logger.debug(msg)
+
+
+
+    # keep indexes to filter data with bad magnitudes
     if flag_filter_training:
-        indexes_bad = filter_mag_entries(magdata)
-        magdata_f = np.delete(magdata, indexes_bad, axis=0)
+        indexes_bad_mag = filter_mag_entries(magdata)
+        # magdata_f = np.delete(magdata, indexes_bad_mag, axis=0)
+        magdata_f = magdata  # filtering will be done later
     else:
-        magdata_f=magdata
+        indexes_bad_mag = np.array([])
+        magdata_f = magdata
+
+    Nbadmag = len(indexes_bad_mag)
+    msg = "Number of objects with bad magnitudes {}  in training dataset".format(Nbadmag)
+    logger.debug(msg)
+
 
     # convert mag to fluxes
     fdata = mag_to_flux(magdata_f)
 
-    #filter bad data
+    # keep indexes to filter data with bad SNR
     if flag_filter_training:
-        indexes_bad = filter_flux_entries(fdata,nsig=snr_cut_training)
-        fdata_f = np.delete(fdata, indexes_bad, axis=0)
-        magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
+        indexes_bad_snr = filter_flux_entries(fdata, nsig=snr_cut_training)
+        fdata_f = fdata
+        # fdata_f = np.delete(fdata, indexes_bad, axis=0)
+        # magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
     else:
-        fdata_f=fdata
+        fdata_f = fdata
+        indexes_bad_snr = np.array([])
+
+    Nbadsnr = len(indexes_bad_snr)
+    msg = "Number of objects with bad SNR = {} , in  training dataset".format(Nbadsnr)
+    logger.debug(msg)
+
+    # make union of indexes (unique id) before removing them for Delight
+    idxToRemove = reduce(np.union1d, (indexes_bad_mag, indexes_bad_snr))
+    NtoRemove = len(idxToRemove)
+    msg = "Number of objects filtered out = {} , in training dataset".format(NtoRemove)
+    logger.debug(msg)
 
 
-    gid = magdata_f[:, 0]
-    rs = magdata_f[:, 1]
+    # fdata_f contains the fluxes and errors to be send to Delight
+
+    # indexes of full input dataset
+    idxInitial = np.arange(Nin)
+
+    if NtoRemove > 0:
+        fdata_f = np.delete(fdata_f, idxToRemove, axis=0)
+        idxFinal = np.delete(idxInitial, idxToRemove, axis=0)
+    else:
+        idxFinal = idxInitial
 
 
+    Nkept = len(idxFinal)
+    msg = "Number of objects kept = {} , in training dataset".format(Nkept)
+    logger.debug(msg)
+
+
+
+    gid = fdata_f[:, 0]
+    rs = fdata_f[:, 1]
 
 
     # 2) parameter file
@@ -360,29 +477,71 @@ def convertDESCcat(configfilename,desctraincatalogfile,desctargetcatalogfile,\
 
     # produce a numpy array
     magdata = group_entries(f)
-    # filter bad data
 
+
+    # remember the number of entries
+    Nin = magdata.shape[0]
+    msg = "Number of objects = {} , in  validation dataset".format(Nin)
+    logger.debug(msg)
+
+
+    # filter bad data
+    # keep indexes to filter data with bad magnitudes
     if flag_filter_validation:
-        indexes_bad = filter_mag_entries(magdata)
-        magdata_f = np.delete(magdata, indexes_bad, axis=0)
+        indexes_bad_mag = filter_mag_entries(magdata)
+        # magdata_f = np.delete(magdata, indexes_bad_mag, axis=0)
+        magdata_f = magdata  # filtering will be done later
     else:
+        indexes_bad_mag = np.array([])
         magdata_f = magdata
 
-        # convert mag to fluxes
+    Nbadmag = len(indexes_bad_mag)
+    msg = "Number of objects with bad magnitudes = {} , in validation dataset".format(Nbadmag)
+    logger.debug(msg)
+
+
+
+    # convert mag to fluxes
     fdata = mag_to_flux(magdata_f)
 
-    # filter bad data
+    # keep indexes to filter data with bad SNR
     if flag_filter_validation:
-        indexes_bad = filter_flux_entries(fdata,nsig=snr_cut_validation)
-        fdata_f = np.delete(fdata, indexes_bad, axis=0)
-        magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
+        indexes_bad_snr = filter_flux_entries(fdata, nsig=snr_cut_validation)
+        fdata_f = fdata
+        # fdata_f = np.delete(fdata, indexes_bad, axis=0)
+        # magdata_f = np.delete(magdata_f, indexes_bad, axis=0)
     else:
         fdata_f = fdata
+        indexes_bad_snr = np.array([])
 
-    gid = magdata_f[:, 0]
-    rs = magdata_f[:, 1]
+    Nbadsnr = len(indexes_bad_snr)
+    msg = "Number of objects with bad SNR = {} , in  validation dataset".format(Nbadsnr)
+    logger.debug(msg)
+
+    # make union of indexes (unique id) before removing them for Delight
+    idxToRemove = reduce(np.union1d, (indexes_bad_mag, indexes_bad_snr))
+    NtoRemove = len(idxToRemove)
+    msg = "Number of objects filtered out = {} , in validation dataset".format(NtoRemove)
+    logger.debug(msg)
+
+    # fdata_f contains the fluxes and errors to be send to Delight
+
+    # indexes of full input dataset
+    idxInitial = np.arange(Nin)
+
+    if NtoRemove > 0:
+        fdata_f = np.delete(fdata_f, idxToRemove, axis=0)
+        idxFinal = np.delete(idxInitial, idxToRemove, axis=0)
+    else:
+        idxFinal = idxInitial
 
 
+    Nkept = len(idxFinal)
+    msg = "Number of objects kept = {} , in validation dataset".format(Nkept)
+    logger.debug(msg)
+
+    gid = fdata_f[:, 0]
+    rs = fdata_f[:, 1]
 
     numObjects = len(gid)
     msg = "get {} objects ".format(numObjects)
