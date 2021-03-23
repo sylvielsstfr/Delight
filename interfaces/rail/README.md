@@ -36,17 +36,17 @@ Then the RAIL traning and validation dataset are converted into an ascii format 
 
 ### Initialisation
 
-- **processFilters.py**: Decompose the Filter transmission into a gaussian mixture sum.
+- **processFilters.py**: Decompose the Filter transmission into a gaussian mixture sum. The filters to be used are selected in the delight configuration file. In the context of DESC, only LSST filters are selected (u,g,r,i,z,y). The parameters of the fit are written in the file '_gaussian_coefficients.txt' in the Filter direcptry.
 
-- **processSEDs.py**:
+- **processSEDs.py**: Build a model of fluxes-redshifts from a set of SED templates in the chosen filters. It is possible to use either the CWW model or the Brown model. By now, CWW SED are chosen in the delight configuration file. The fluxes-redshifts models, one per SED template are written in the file '_fluxredshiftmod.txt'.
 
 ### creation
 
-- **simulateWithSEDs.py**: In TUTORIAL MODE generate mock dataset inside Delight.
+- **simulateWithSEDs.py**: In TUTORIAL MODE generate mock dataset inside Delight. These data are the traning and validation samples of fluxes-fluxeserrors-redshift drawing ramdomly the type of the underlying SED template Fluxes-Redshifts model build in **processSEDs.py**. These data are written in the ascii files 'trainingFile' and 'targetFile' which true name is given in the configuration parameter file.
 
 ### Learn
 
-- **delightLearn.py**:	
+- **delightLearn.py**:	Build the Gaussian Process from the training data. The Gaussian process is written in the file 'training_paramFile'.
 
 ### Estimation	
 							
