@@ -34,16 +34,21 @@ Then the RAIL traning and validation dataset are converted into an ascii format 
 
 ## Main Delight scripts transposed to be called by rail
 
-- **processFilters.py**:
+### Initialisation
+
+- **processFilters.py**: Decompose the Filter transmission into a gaussian mixture sum.
 
 - **processSEDs.py**:
 
-- **simulateWithSEDs.py**:
+### creation
 
+- **simulateWithSEDs.py**: In TUTORIAL MODE generate mock dataset inside Delight.
 
+### Learn
 
 - **delightLearn.py**:	
 
+### Estimation	
 							
 - **templateFitting.py**:
 
@@ -51,30 +56,24 @@ Then the RAIL traning and validation dataset are converted into an ascii format 
 
 ## Other Delight modules
 
-- **calibrateTemplateMixturePriors.py**: This module must be used outside RAI
-
+- **calibrateTemplateMixturePriors.py**: This module must be used outside RAIL.
 
 
 ## Python modules for interface purposes
 
--
 
-- **makeConfigParam.py**:
+- **makeConfigParam.py**: Generate Delight configuration file from Delight configuration file. In the case of RAIL estimation, the validation data is split into different chunk. Then there must be is one Delight configuration file per chunk. A Delight configuration file must contain all data file paths used by Delight.
 
-- **convertDESCcat.py**:	
+- **convertDESCcat.py**: Convert DESC PhotoZ dataset into ascii file readable by Delight. For now, hdf5 file format are used.
 
-- **getDelightRedshiftEstimation.py**:
+- **getDelightRedshiftEstimation.py**: Retrieve results on PhotoZ estimation of Delight for RAIL. 
 
  
 
 
 
-
-
-
-
 ## Utilities
 
-- **utils.py : **
+- **utils.py** : Library of IO inside RAIL used in **convertDESCcat.py** for reading DESC dataset
 
 
