@@ -238,8 +238,8 @@ redshiftpdfFileComp: data_lsst/galaxies-redshiftpdfs-comp.txt
 
     # 7) Other Section
 
-
-    paramfile_txt +=  \
+    if inputs_rail == None:
+        paramfile_txt +=  \
 """
 [Other]
 rootDir: ./
@@ -253,8 +253,42 @@ V_L: 0.1
 lines_pos: 6500 5002.26 3732.22
 lines_width: 20.0 20.0 20.0
 """
+    else:
+        zPriorSigma = inputs_rail["zPriorSigma"]
+        ellPriorSigma = inputs_rail["ellPriorSigma"]
+        fluxLuminosityNorm = inputs_rail["fluxLuminosityNorm"]
+        alpha_C = inputs_rail["alpha_C"]
+        V_C = inputs_rail["V_C"]
+        alpha_L = inputs_rail["alpha_L"]
+        V_L = inputs_rail["V_L"]
+        lineWidthSigma = inputs_rail["lineWidthSigma"]
 
+        paramfile_txt += \
+"""
+[Other]
+rootDir: ./
+"""
 
+        paramfile_txt += "zPriorSigma: " + str(zPriorSigma)
+        paramfile_txt += "\n"
+        paramfile_txt += "ellPriorSigma: " + str(ellPriorSigma)
+        paramfile_txt += "\n"
+        paramfile_txt += "fluxLuminosityNorm: " + str(fluxLuminosityNorm)
+        paramfile_txt += "\n"
+        paramfile_txt += "alpha_C: " + str(alpha_C)
+        paramfile_txt += "\n"
+        paramfile_txt += "V_C: " + str(V_C)
+        paramfile_txt += "\n"
+        paramfile_txt += "alpha_L: " + str(alpha_L)
+        paramfile_txt += "\n"
+        paramfile_txt += "V_L: " + str(V_L)
+        paramfile_txt += "\n"
+        paramfile_txt += "lines_pos: 6500 5002.26 3732.22 \n"
+        paramfile_txt += "\n"
+        paramfile_txt += "lines_width: " + str(lineWidthSigma) + " " + \
+                         str(lineWidthSigma) + " " + \
+                         str(lineWidthSigma) + " " + \
+                         str(lineWidthSigma) + " " + "\n"
 
 
     if inputs_rail == None:
@@ -529,8 +563,8 @@ redshiftpdfFileComp: data_lsst/galaxies-redshiftpdfs-comp.txt
 
     # 7) Other Section
 
-
-    paramfile_txt +=  \
+    if inputs_rail == None:
+        paramfile_txt +=  \
 """
 [Other]
 rootDir: ./
@@ -544,6 +578,44 @@ V_L: 0.1
 lines_pos: 6500 5002.26 3732.22
 lines_width: 20.0 20.0 20.0
 """
+    else:
+        zPriorSigma = inputs_rail["zPriorSigma"]
+        ellPriorSigma = inputs_rail["ellPriorSigma"]
+        fluxLuminosityNorm =  inputs_rail["fluxLuminosityNorm"]
+        alpha_C  = inputs_rail["alpha_C"]
+        V_C = inputs_rail["V_C"]
+        alpha_L = inputs_rail["alpha_L"]
+        V_L = inputs_rail["V_L"]
+        lineWidthSigma = inputs_rail["lineWidthSigma"]
+
+        paramfile_txt += \
+"""
+[Other]
+rootDir: ./
+"""
+
+        paramfile_txt += "zPriorSigma: "+ str(zPriorSigma)
+        paramfile_txt += "\n"
+        paramfile_txt += "ellPriorSigma: " + str(ellPriorSigma)
+        paramfile_txt += "\n"
+        paramfile_txt += "fluxLuminosityNorm: " + str(fluxLuminosityNorm)
+        paramfile_txt += "\n"
+        paramfile_txt += "alpha_C: " + str(alpha_C)
+        paramfile_txt += "\n"
+        paramfile_txt += "V_C: " + str(V_C)
+        paramfile_txt += "\n"
+        paramfile_txt += "alpha_L: " + str(alpha_L)
+        paramfile_txt += "\n"
+        paramfile_txt += "V_L: " + str(V_L)
+        paramfile_txt += "\n"
+        paramfile_txt += "lines_pos: 6500 5002.26 3732.22 \n"
+        paramfile_txt += "\n"
+        paramfile_txt += "lines_width: " + str(lineWidthSigma) + " " +\
+                         str(lineWidthSigma) + " " +\
+                         str(lineWidthSigma) + " " + \
+                         str(lineWidthSigma) + " " + "\n"
+
+
 
 
 
