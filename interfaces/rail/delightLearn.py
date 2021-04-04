@@ -2,6 +2,9 @@
 #
 # script : delight-learn.py
 #
+#  input : 'training_catFile'
+#  output : localData or reducedData usefull for Gaussian Process in 'training_paramFile'
+#  - find the normalisation of the flux and the best galaxy type
 ############################################################################################################################
 import sys
 from mpi4py import MPI
@@ -89,6 +92,7 @@ def delightLearn(configfilename):
             for ib, band in enumerate(bands):
                 themod[0, it, ib] = f_mod[it, band](z)
 
+        # probably calibrate the luminosity parameter l compared to the model
         chi2_grid, ellMLs = scalefree_flux_likelihood(fluxes,fluxesVar,themod,returnChi2=True)
 
         bestType = np.argmin(chi2_grid)

@@ -67,7 +67,9 @@ def simulateWithSEDs(configfilename):
     #pick some SED type at random
     types = np.random.randint(0, high=numT, size=numObjects)
 
-    ell = 1e6 # I don't know why we have this value multiplicative constant : TBC
+    ell = 1e6 # I don't know why we have this value multiplicative constant
+              # it is to show that delightLearn can find this multiplicative number when calling
+              # utils:scalefree_flux_likelihood(returnedChi2=True)
 
     # what is fluxes and fluxes variance
     fluxes, fluxesVar = np.zeros((numObjects, numB)), np.zeros((numObjects, numB))
