@@ -92,11 +92,12 @@ def delightLearn(configfilename):
             for ib, band in enumerate(bands):
                 themod[0, it, ib] = f_mod[it, band](z)
 
-        # probably calibrate the luminosity parameter l compared to the model
+        # really calibrate the luminosity parameter l compared to the model
+        # according the best type of galaxy
         chi2_grid, ellMLs = scalefree_flux_likelihood(fluxes,fluxesVar,themod,returnChi2=True)
 
-        bestType = np.argmin(chi2_grid)
-        ell = ellMLs[0, bestType]
+        bestType = np.argmin(chi2_grid)  # best type
+        ell = ellMLs[0, bestType]        # the luminosity factor
         X[:, 2] = ell
 
         gp.setData(X, Y, Yvar, bestType)
@@ -137,6 +138,8 @@ def delightLearn(configfilename):
     comm.Gatherv(localData, [reducedData, sendcounts, displacements, MPI.DOUBLE])
     comm.Barrier()
 
+    # parameters for the GP process on traniing data are transfered to reduced data and saved in file
+    #'training_paramFile'
     if threadNum == 0:
         np.savetxt(params['training_paramFile'], reducedData, fmt=fmt)
         if crossValidate:

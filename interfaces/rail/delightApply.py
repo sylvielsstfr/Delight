@@ -105,22 +105,24 @@ def delightApply(configfilename):
         bestTypes = np.zeros((numTObjCk, ), dtype=int)
         ells = np.zeros((numTObjCk, ), dtype=int)
 
+        # load the GP parameters already learned on training dataset
         loc = TR_firstLine - 1
         trainingDataIter = getDataFromFile(params, TR_firstLine, TR_lastLine,prefix="training_", ftype="gpparams")
 
-
+        # loop on training data to load the GP parameter
         for loc, (z, ell, bands, X, B, flatarray) in enumerate(trainingDataIter):
             t1 = time()
-            redshifts[loc] = z
+            redshifts[loc] = z              # redshift of all training samples
             gp.setCore(X, B, nt,flatarray[0:nt+B+B*(B+1)//2])
-            bestTypes[loc] = gp.bestType
-            ells[loc] = ell
+            bestTypes[loc] = gp.bestType   # retreive the best-type found by delight-learn
+            ells[loc] = ell                # retreive the luminosity parameter l
             model_mean[:, loc, :], model_covar[:, loc, :] = gp.predictAndInterpolate(redshiftGrid, ell=ell)
             t2 = time()
             # print(loc, t2-t1)
 
         # p_t = params['p_t'][bestTypes][None, :]
         # p_z_t = params['p_z_t'][bestTypes][None, :]
+        # compute the prior for taht training sample
         prior = np.exp(-0.5*((redshiftGrid[:, None]-redshifts[None, :]) /params['zPriorSigma'])**2)
         # prior[prior < 1e-6] = 0
         # prior *= p_t * redshiftGrid[:, None] *
@@ -134,6 +136,7 @@ def delightApply(configfilename):
 
         targetDataIter = getDataFromFile(params, firstLine, lastLine,prefix="target_", getXY=False, CV=False)
 
+        # loop on target
         for loc, (z, normedRefFlux, bands, fluxes, fluxesVar, bCV, dCV, dVCV) in enumerate(targetDataIter):
             t1 = time()
             ell_hat_z = normedRefFlux * 4 * np.pi * params['fluxLuminosityNorm'] * (DL(redshiftGrid)**2. * (1+redshiftGrid))
